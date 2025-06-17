@@ -41,7 +41,7 @@ export default function Nome() {
 
   const handleChange = (text) => {
     // regex to accept only letters, spaces, and hyphens
-    const regex = /^[a-zA-ZÀ-ÿ\s-]+$/;
+    const regex = /^[a-zA-ZÀ-ÿ\s-]*$/;
     if (!regex.test(text)) {
       // If the input does not match the regex, prevent input
       return;
