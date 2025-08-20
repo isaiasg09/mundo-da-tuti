@@ -124,10 +124,7 @@ export default function Index() {
   // Calcula o deslocamento vertical máximo que a imagem de fundo pode ter.
   // Se a imagem for mais alta que o viewport, calcula a diferença. Caso contrário, o deslocamento é 0.
   const maxTranslateY =
-    imageHeight &&
-    imageHeight > 0 &&
-    viewportHeight &&
-    imageHeight > viewportHeight // Verifica se todas as dimensões são válidas e se a imagem é mais alta
+    imageHeight && imageHeight > 0 && viewportHeight && imageHeight > viewportHeight // Verifica se todas as dimensões são válidas e se a imagem é mais alta
       ? imageHeight - viewportHeight // Diferença que pode ser "rolada"
       : 0; // Sem rolagem se a imagem for mais curta ou de igual altura, ou se houver erro em imageHeight
 
@@ -207,11 +204,7 @@ export default function Index() {
     if (imageHeight === -1) {
       // Se houve erro ao calcular imageHeight
       statusMessage = "Erro ao carregar dimensões da imagem.";
-    } else if (
-      viewportHeight === 0 &&
-      imageHeight !== null &&
-      imageHeight !== -1
-    ) {
+    } else if (viewportHeight === 0 && imageHeight !== null && imageHeight !== -1) {
       // Se já temos imageHeight mas não viewportHeight
       statusMessage = "Aguardando dimensões do layout...";
     }

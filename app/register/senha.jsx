@@ -79,11 +79,7 @@ export default function Senha() {
             accessibilityLabel="Mascote Tuti dando dica de segurança"
           />
 
-          <PinkButton
-            title="PROXIMO"
-            onPress={handleGoNext}
-            style={{ marginTop: 20 }}
-          />
+          <PinkButton title="PROXIMO" onPress={handleGoNext} style={{ marginTop: 20 }} />
         </View>
       </ImageBackground>
     </SafeAreaView>

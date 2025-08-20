@@ -1,12 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import {
-  View,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  Animated,
-} from "react-native";
+import { View, Image, StyleSheet, Text, TouchableOpacity, Animated } from "react-native";
 import { useRouter } from "expo-router";
 
 export default function Loading() {

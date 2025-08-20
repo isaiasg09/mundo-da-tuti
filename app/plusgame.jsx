@@ -12,18 +12,16 @@ import { scale, verticalScale, moderateScale } from "react-native-size-matters";
 
 // Importações para a lógica de jogo
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useGameProgress } from "@/context/GameContext"; // Importa o contexto do jogo
-import { CASTLE_PATH_GAMES } from "@/constants/paths"; // Importa a lista de jogos do caminho
 import { GAME_DIFFICULTY_CONFIG } from "@/constants/gameConfig"; // Importa nossa configuração
 import BackButton from "@/components/backbutton";
 import ProgressBar from "@/components/progressbar"; // Importe sua ProgressBar
 import ConfettiCannon from "react-native-confetti-cannon"; // Para a tela de sucesso
+import { useLevelNavigation } from "@/hooks/useLevelNavigation";
 
 const TOTAL_ROUNDS = 5;
 
 export default function PlusGame() {
   const router = useRouter();
-  const { gameProgress, setGameProgress } = useGameProgress();
   const confettiRef = useRef(null);
   const {
     pathId,
@@ -32,6 +30,8 @@ export default function PlusGame() {
     difficulty = "facil", // Pega o parâmetro de dificuldade da rota. Se nenhum for passado, ele assume 'facil' como padrão.
     gameType = "soma", // Pega o parâmetro de tipo de jogo da rota. Se nenhum for passado, ele assume 'soma' como padrão.
   } = useLocalSearchParams();
+  console.log("PlusGame params:", { pathId, gameId, contextKey, difficulty, gameType });
+  const { openLevel, completeLevel } = useLevelNavigation(pathId);
 
   // Pega as configurações para a dificuldade atual
   const config = GAME_DIFFICULTY_CONFIG[gameType][difficulty];
@@ -121,33 +121,25 @@ export default function PlusGame() {
 
   // Lógica para salvar progresso e navegar após vencer
   const handleGameCompletion = () => {
-    const currentGameIndex = CASTLE_PATH_GAMES.findIndex(
-      (game) => game.id === Number(gameId)
-    );
-    if (currentGameIndex === -1) {
-      Alert.alert("Erro", "Não foi possível salvar o progresso.");
-      router.replace({ pathname: "/firstpath", params: { pathId } });
+    if (!gameId || !pathId) {
+      router.back();
       return;
     }
-    const progressUpdate = {
-      paths: { [pathId]: { games: { [contextKey]: { status: "completed" } } } },
-    };
-    const nextGame = CASTLE_PATH_GAMES[currentGameIndex + 1];
+    const current = Number(gameId);
+    const next = current + 1;
+    try {
+      completeLevel(current);
+      // setTimeout(() => {
+      //   const res = openLevel(next);
+      //   if (!res || res.ok === false) {
+      //     router.back();
+      //   }
+      // }, 50);
 
-    if (nextGame) {
-      const nextGameContextKey = `game${currentGameIndex + 2}`;
-      progressUpdate.paths[pathId].games[nextGameContextKey] = {
-        status: "unlocked",
-      };
-    } else {
-      progressUpdate.paths[pathId].status = "completed";
-      progressUpdate.paths.molusco_perola = { status: "unlocked" };
+      router.replace("/firstpath");
+    } catch (e) {
+      router.back();
     }
-    setGameProgress(progressUpdate);
-
-    // 8. Navega o jogador de volta para a tela do mapa do caminho.
-    console.log("Jogo concluído. Voltando para o mapa do caminho...");
-    router.back();
   };
 
   // Renderiza a tela de sucesso se o jogo foi vencido
@@ -170,11 +162,8 @@ export default function PlusGame() {
           />
         </TouchableWithoutFeedback>
 
-        <TouchableOpacity
-          style={successStyles.button}
-          onPress={handleGameCompletion}
-        >
-          <Text style={successStyles.buttonText}>Voltar ao Mapa</Text>
+        <TouchableOpacity style={successStyles.button} onPress={handleGameCompletion}>
+          <Text style={successStyles.buttonText}>Próximo Nível</Text>
         </TouchableOpacity>
       </View>
     );
@@ -208,10 +197,7 @@ export default function PlusGame() {
           </View>
         </View>
 
-        <Image
-          source={require("../assets/images/icons/mais.png")}
-          style={styles.plus}
-        />
+        <Image source={require("../assets/images/icons/mais.png")} style={styles.plus} />
 
         <View style={styles.turtleContainer}>
           <Image
@@ -249,9 +235,7 @@ export default function PlusGame() {
                   <Text
                     style={[
                       styles.bubbleText,
-                      bubble.value >= 10
-                        ? styles.doubleDigit
-                        : styles.singleDigit,
+                      bubble.value >= 10 ? styles.doubleDigit : styles.singleDigit,
                       { color: bubble.color },
                     ]}
                   >

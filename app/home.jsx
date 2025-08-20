@@ -143,10 +143,7 @@ export default function Home() {
           <TouchableOpacity onPress={() => handleArrowPress("left")}>
             <Image
               source={arrowIcon}
-              style={[
-                styles.arrowButton,
-                { transform: [{ rotateY: "180deg" }] },
-              ]}
+              style={[styles.arrowButton, { transform: [{ rotateY: "180deg" }] }]}
               resizeMode="contain" // 'contain' é melhor para ícones
             />
           </TouchableOpacity>
@@ -157,8 +154,7 @@ export default function Home() {
             const currentPath = gamePaths[currentIndex];
             // Verifica no contexto se o caminho atual está bloqueado.
             // Usa 'optional chaining' (?) para evitar erros se 'currentPath.id' não existir no progresso
-            const isLocked =
-              gameProgress.paths[currentPath.id]?.status === "locked";
+            const isLocked = gameProgress.paths[currentPath.id]?.status === "locked";
 
             return (
               <TouchableOpacity
@@ -173,8 +169,7 @@ export default function Home() {
                     isImageA_current
                       ? gamePaths[currentIndex].image
                       : gamePaths[
-                          (currentIndex - 1 + gamePaths.length) %
-                            gamePaths.length
+                          (currentIndex - 1 + gamePaths.length) % gamePaths.length
                         ].image
                   }
                   style={[styles.pathImage, animatedStyle_A]}

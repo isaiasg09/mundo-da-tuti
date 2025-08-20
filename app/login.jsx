@@ -27,8 +27,7 @@ const { width } = Dimensions.get("window");
 
 // Crie um componente TouchableOpacity animável com Reanimated
 // Isso permite que o próprio TouchableOpacity receba estilos animados.
-const AnimatedTouchableOpacity =
-  Animated.createAnimatedComponent(TouchableOpacity);
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 export default function Login() {
   const [Email, onChangeEmail] = useState("");
@@ -133,10 +132,7 @@ export default function Login() {
         {/* Logo fora da content */}
 
         <View style={styles.content}>
-          <Image
-            source={require("../assets/images/textologo.png")}
-            style={styles.logo}
-          />
+          <Image source={require("../assets/images/textologo.png")} style={styles.logo} />
 
           <View style={{ width: "85%" }}>
             {/* Email input */}
@@ -172,22 +168,15 @@ export default function Login() {
             {/* </View> */}
 
             <View style={styles.passwordOptionsContainer}>
-              <TouchableOpacity
-                onPress={() => setStayConnected(!stayConnected)}
-              >
+              <TouchableOpacity onPress={() => setStayConnected(!stayConnected)}>
                 <View style={styles.checkboxContainer}>
                   <TouchableOpacity
-                    style={[
-                      styles.checkboxBox,
-                      stayConnected && styles.checkboxChecked,
-                    ]}
+                    style={[styles.checkboxBox, stayConnected && styles.checkboxChecked]}
                     onPress={() => setStayConnected(!stayConnected)}
                   >
                     {stayConnected && <View style={styles.checkboxTick} />}
                   </TouchableOpacity>
-                  <Text style={styles.checkboxLabel}>
-                    MANTENHA-ME CONECTADO
-                  </Text>
+                  <Text style={styles.checkboxLabel}>MANTENHA-ME CONECTADO</Text>
                 </View>
               </TouchableOpacity>
               <TouchableOpacity
@@ -223,8 +212,7 @@ export default function Login() {
             }}
           >
             <Text style={styles.Register}>
-              NÃO TEM UMA CONTA?{" "}
-              <Text style={styles.linkText}>CADASTRE-SE</Text>
+              NÃO TEM UMA CONTA? <Text style={styles.linkText}>CADASTRE-SE</Text>
             </Text>
           </TouchableOpacity>
 
@@ -253,9 +241,7 @@ export default function Login() {
                   style={styles.helpBox}
                   // onStartShouldSetResponder={() => true} // Removido/Comentado para permitir que clique no conteúdo feche
                 >
-                  <Text style={styles.helpTitle}>
-                    não consegue fazer login?
-                  </Text>
+                  <Text style={styles.helpTitle}>não consegue fazer login?</Text>
                   <View style={styles.helpContentRow}>
                     <View style={styles.baloesWrapper}>
                       <ImageBackground
@@ -273,8 +259,8 @@ export default function Login() {
                         resizeMode="cover"
                       >
                         <Text style={styles.balaoTexto}>
-                          peça-o <Text style={styles.enfasis}>gentilmente</Text>{" "}
-                          para que acesse sua conta cadastrada!
+                          peça-o <Text style={styles.enfasis}>gentilmente</Text> para que
+                          acesse sua conta cadastrada!
                         </Text>
                       </ImageBackground>
                     </View>

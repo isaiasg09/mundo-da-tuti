@@ -20,7 +20,7 @@ export default function Pergunta5() {
   const [selectedOption, setSelectedOption] = useState(() => {
     // Verifica se já existe uma opção selecionada no contexto
     const savedOption = registrationData.seDistraiFacilmente;
-    return savedOption !== undefined ? options.indexOf(savedOption) : null;
+    return savedOption !== false ? options.indexOf(savedOption) : null;
   });
 
   useEffect(() => {
@@ -80,10 +80,7 @@ export default function Pergunta5() {
               onPress={() => setSelectedOption(index)}
             >
               <Text
-                style={[
-                  styles.optionText,
-                  selectedOption === index && { color: "#fff" },
-                ]}
+                style={[styles.optionText, selectedOption === index && { color: "#fff" }]}
               >
                 {label}
               </Text>

@@ -6,11 +6,13 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Dimensions,
 } from "react-native";
+import { router } from "expo-router";
+
 import BackButton from "@/components/backbutton";
 import DefaultInput from "@/components/defaultinput";
 import PinkButton from "@/components/pinkbutton";
-import { router } from "expo-router";
 
 import { useRegistration } from "@/context/RegistrationContext"; // Importa o hook do contexto
 
@@ -48,27 +50,26 @@ const profileImageOptions = [
 export default function CustomizarPerfil() {
   // Inicializa o username com o valor do contexto, se existir
   const { registrationData, setRegistrationData } = useRegistration(); // Hook do contexto
+  const { width } = Dimensions.get("window");
   const [username, setUsername] = useState(registrationData.usuario || "");
-
   const [isUsernameValid, setIsUsernameValid] = useState(true);
 
   // Encontra o índice inicial da imagem com base no que está salvo no contexto
   const initialImageIndex = profileImageOptions.findIndex(
     (img) => img.key === registrationData.profileImageKey
   );
-  // Estado para o índice da imagem de perfil atualmente selecionada
+
+  // Começa com a imagem salva no contexto, se houver
   const [currentImageIndex, setCurrentImageIndex] = useState(
-    initialImageIndex !== -1 ? initialImageIndex : 0 // Começa com a salva ou a primeira
+    initialImageIndex !== -1 ? initialImageIndex : 0
   );
 
-  // Função para ir para a próxima imagem no array de avatares
   const handleNextImage = () => {
     setCurrentImageIndex((prevIndex) =>
       prevIndex === profileImageOptions.length - 1 ? 0 : prevIndex + 1
     );
   };
 
-  // Função para ir para a imagem anterior no array de avatares
   const handlePreviousImage = () => {
     setCurrentImageIndex((prevIndex) =>
       prevIndex === 0 ? profileImageOptions.length - 1 : prevIndex - 1
@@ -137,8 +138,7 @@ export default function CustomizarPerfil() {
             textAlign: "center",
           }}
         >
-          Agora Vamos <Text style={{ color: "#b07aff" }}>customizar</Text> seu
-          perfil!
+          Agora Vamos <Text style={{ color: "#b07aff" }}>customizar</Text> seu perfil!
         </Text>
 
         <Text
@@ -189,7 +189,7 @@ export default function CustomizarPerfil() {
             style={{
               // flex: 1,
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent: "space-between",
               flexDirection: "row",
               width: "100%",
               marginTop: 10,

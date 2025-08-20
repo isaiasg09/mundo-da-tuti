@@ -30,9 +30,7 @@ const RegistrationContext = createContext({
 // Este componente vai envolver as partes do seu app que precisam acessar os dados do cadastro.
 // Ele vai gerenciar o estado real e fornecer a função para modificá-lo.
 export const RegistrationProvider = ({ children }) => {
-  const [registrationData, setRegistrationDataState] = useState(
-    initialRegistrationData
-  );
+  const [registrationData, setRegistrationDataState] = useState(initialRegistrationData);
 
   // Função para atualizar os dados do cadastro.
   // Você pode passar um objeto com os campos que quer atualizar.
@@ -70,11 +68,7 @@ export const RegistrationProvider = ({ children }) => {
 export const useRegistration = () => {
   const context = useContext(RegistrationContext);
   if (context === undefined) {
-    throw new Error(
-      "useRegistration deve ser usado dentro de um RegistrationProvider"
-    );
+    throw new Error("useRegistration deve ser usado dentro de um RegistrationProvider");
   }
   return context;
 };
-
-// log toda vez que os dados mudarem

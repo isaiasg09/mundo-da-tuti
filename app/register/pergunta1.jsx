@@ -92,9 +92,7 @@ export default function Pergunta1() {
         <View style={styles.headerContent}>
           <Text style={styles.title}>SOBRE A CRIANÇA</Text>
           <Text style={styles.instruction}>PREENCHA OS ITENS ABAIXO:</Text>
-          <Text style={styles.question}>
-            A CRIANÇA É PORTADORA DE ALGUMA SÍNDROME?
-          </Text>
+          <Text style={styles.question}>A CRIANÇA É PORTADORA DE ALGUMA SÍNDROME?</Text>
         </View>
 
         {/* Container dos botões de opção */}

@@ -19,6 +19,8 @@ import Animated, {
 
 // Importa hook de progresso do jogo
 import { useGameProgress } from "@/context/GameContext";
+import { useLevelNavigation } from "@/hooks/useLevelNavigation";
+import LevelNode from "./LevelNode";
 
 import Svg, { Path } from "react-native-svg";
 import { useRouter } from "expo-router";
@@ -29,17 +31,17 @@ const LEVEL_STATES = {
   LOCKED: "locked",
 };
 
-import { CASTLE_PATH_GAMES } from "@/constants/paths";
+import { PATHS } from "@/constants/paths";
 
 // posições absolutas das conchas
-const levelPositions = [
-  { id: 1, x: 175, state: LEVEL_STATES.UNLOCKED },
-  { id: 2, x: 70, state: LEVEL_STATES.LOCKED },
-  { id: 3, x: 260, state: LEVEL_STATES.LOCKED },
-  { id: 4, x: 310, state: LEVEL_STATES.LOCKED },
-  { id: 5, x: 140, state: LEVEL_STATES.LOCKED },
-  { id: 6, x: 250, state: LEVEL_STATES.LOCKED },
-];
+// const levelPositions = [
+//   { id: 1, x: 175, state: LEVEL_STATES.UNLOCKED },
+//   { id: 2, x: 70, state: LEVEL_STATES.LOCKED },
+//   { id: 3, x: 260, state: LEVEL_STATES.LOCKED },
+//   { id: 4, x: 310, state: LEVEL_STATES.LOCKED },
+//   { id: 5, x: 140, state: LEVEL_STATES.LOCKED },
+//   { id: 6, x: 250, state: LEVEL_STATES.LOCKED },
+// ];
 
 // Gera os níveis com base nos X definidos e Y decrescente (de baixo pra cima)
 // const createLevels = () => {
@@ -115,6 +117,8 @@ export default function ShellPathMap({ pathId }) {
   const handleNavigate = async () => {};
 
   const { gameProgress } = useGameProgress();
+
+  const { openLevel } = useLevelNavigation(pathId);
   // console.log("LOG EM ShellPathMap: Prop 'pathId' recebida:", pathId);
   // console.log(
   //   "LOG EM ShellPathMap: Conteúdo do GameContext:",
@@ -122,7 +126,7 @@ export default function ShellPathMap({ pathId }) {
   // );
 
   // --- LÓGICA DINÂMICA PARA CRIAR OS NÍVEIS ---
-  // `useMemo` combina os dados estáticos (CASTLE_PATH_GAMES) com os dados dinâmicos do `gameProgress`.
+  // `useMemo` combina os dados estáticos (PATHS[pathId]) com os dados dinâmicos do `gameProgress`.
   // Ele só recalcula o array 'levels' quando o progresso do jogo muda.
   const levels = useMemo(() => {
     // Se ainda não recebemos o pathId ou se os dados para esse caminho não existem no contexto, retorna um array vazio.
@@ -134,13 +138,14 @@ export default function ShellPathMap({ pathId }) {
     const baseY = 550; // Posição Y inicial (base do mapa)
     const stepY = 100; // Distância vertical entre os níveis
 
-    return CASTLE_PATH_GAMES.map((gameConfig, index) => {
+    // Mapeia os jogos do caminho para criar os níveis
+    // Pega o caminho atual com o pathId dentro do PATHS
+    return PATHS[pathId].map((gameConfig, index) => {
       // Constrói a chave genérica (ex: 'game1', 'game2') para procurar no contexto
       const genericGameKey = `game${index + 1}`;
 
       // Busca o status no contexto usando a chave genérica. Se não encontrar, assume como 'locked'.
-      const statusFromContext =
-        pathState[genericGameKey]?.status || LEVEL_STATES.LOCKED;
+      const statusFromContext = pathState[genericGameKey]?.status || LEVEL_STATES.LOCKED;
 
       // Retorna um objeto completo com todos os dados do nível
       return {
@@ -162,10 +167,7 @@ export default function ShellPathMap({ pathId }) {
     if (isLoading) return;
 
     if (level.state === LEVEL_STATES.LOCKED) {
-      Alert.alert(
-        "Nível bloqueado",
-        "Complete os anteriores para desbloquear."
-      );
+      Alert.alert("Nível bloqueado", "Complete os anteriores para desbloquear.");
 
       return;
     }
@@ -213,10 +215,9 @@ export default function ShellPathMap({ pathId }) {
       setIsLoading(false);
     }
   };
+  // --- FIM DA LÓGICA DINÂMICA ---
 
-  // Curva mais acentuada
-
-  // make it more curvy in the middle of path
+  // Função para gerar o caminho SVG entre dois pontos
   const generatePath = (start, end, index) => {
     const curveStrength = 150; // Aumente isso para mais curvatura
     const direction = index % 2 === 0 ? 1 : -1;
@@ -259,19 +260,13 @@ export default function ShellPathMap({ pathId }) {
       <Svg height={800} width={"100%"} style={{ position: "absolute" }}>
         {/* Caminho vindo de baixo até o nível 1 */}
         <Path
-          d={generatePath(
-            { x: levels[0].x, y: levels[0].y + 100 },
-            levels[0],
-            -1
-          )}
+          d={generatePath({ x: levels[0].x, y: levels[0].y + 100 }, levels[0], -1)}
           stroke="#d49b65"
           strokeWidth={4}
           fill="none"
           strokeLinecap="round"
           // strokeDasharray={"10 8"}
-          strokeDasharray={
-            levels[0].state === LEVEL_STATES.COMPLETED ? "0" : "10 8"
-          }
+          strokeDasharray={levels[0].state === LEVEL_STATES.COMPLETED ? "0" : "10 8"}
         />
 
         {/* Caminhos entre os níveis */}
@@ -314,10 +309,7 @@ export default function ShellPathMap({ pathId }) {
           transform: [
             { scale: scales[index].value },
             {
-              rotate:
-                index < 3
-                  ? `${(index * 20) % 360}deg`
-                  : `${(index * -5) % 360}deg`,
+              rotate: index < 3 ? `${(index * 20) % 360}deg` : `${(index * -5) % 360}deg`,
             },
           ],
         }));
@@ -334,12 +326,8 @@ export default function ShellPathMap({ pathId }) {
               animatedStyle,
             ]}
           >
-            {/* brilho atrás da concha */}
-            <Image
-              source={brilhoImg}
-              resizeMode="contain"
-              style={[styles.shineImage]}
-            />
+            {/* brilho atrás da concha
+            <Image source={brilhoImg} resizeMode="contain" style={[styles.shineImage]} />
 
             <TouchableOpacity
               onPress={() => handlePressLevel(level, index)}
@@ -364,7 +352,20 @@ export default function ShellPathMap({ pathId }) {
                   <Text style={styles.lockSymbol}>🔒</Text>
                 )}
               </ImageBackground>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
+            
+            <LevelNode
+              id={level.id}
+              x={level.x}
+              y={level.y}
+              state={level.state}
+              variant="shell"
+              images={shellImages}
+              glowImg={brilhoImg}
+              onPress={() => openLevel(level.id)}
+              disableAutoPosition // posição já controlada pelo wrapper externo
+              pulse={false} // pulso já controlado pelo wrapper
+            />
           </Animated.View>
         );
       })}

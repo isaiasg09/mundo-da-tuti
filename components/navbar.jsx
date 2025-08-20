@@ -13,41 +13,22 @@ export default function NavBar() {
   return (
     <View style={styles.topNav}>
       <TouchableOpacity style={styles.navButton}>
-        <Image
-          source={personIcon}
-          style={styles.navButtonIcon}
-          resizeMode="cover"
-        />
+        <Image source={personIcon} style={styles.navButtonIcon} resizeMode="cover" />
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.navButton}
         // onPress={() => router.push("/home")}
       >
-        <Image
-          source={gameIcon}
-          style={styles.navButtonIcon}
-          resizeMode="contain"
-        />
+        <Image source={gameIcon} style={styles.navButtonIcon} resizeMode="contain" />
       </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.navButton}
-        onPress={() => router.push("/settings")}
-      >
-        <Image
-          source={cfgIcon}
-          style={styles.navButtonIcon}
-          resizeMode="cover"
-        />
+      <TouchableOpacity style={styles.navButton} onPress={() => router.push("/settings")}>
+        <Image source={cfgIcon} style={styles.navButtonIcon} resizeMode="cover" />
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.navButton}
         // onPress={() => router.push("/settings")}
       >
-        <Image
-          source={burgerIcon}
-          style={styles.navButtonIcon}
-          resizeMode="contain"
-        />
+        <Image source={burgerIcon} style={styles.navButtonIcon} resizeMode="contain" />
       </TouchableOpacity>
     </View>
   );

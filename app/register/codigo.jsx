@@ -35,8 +35,7 @@ const { width } = Dimensions.get("window");
 
 // Crie um componente TouchableOpacity animável com Reanimated
 // Isso permite que o próprio TouchableOpacity receba estilos animados.
-const AnimatedTouchableOpacity =
-  Animated.createAnimatedComponent(TouchableOpacity);
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 export default function Codigo() {
   // Estado para controlar a visibilidade LÓGICA do pop-up de ajuda
@@ -158,8 +157,7 @@ export default function Codigo() {
                   // onStartShouldSetResponder={() => true} // Removido/Comentado para permitir que clique no conteúdo feche
                 >
                   <Text style={styles.helpTitle}>
-                    O QUE É O{" "}
-                    <Text style={styles.enfasis}>CÓDIGO DE SEGURANÇA?</Text>
+                    O QUE É O <Text style={styles.enfasis}>CÓDIGO DE SEGURANÇA?</Text>
                   </Text>
                   <View style={styles.helpContentRow}>
                     <View style={styles.baloesWrapper}>

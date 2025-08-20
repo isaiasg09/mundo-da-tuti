@@ -1,16 +1,8 @@
-import {
-  TouchableOpacity,
-  Text,
-  TouchableOpacityProps,
-  StyleSheet,
-} from "react-native";
+import { TouchableOpacity, Text, TouchableOpacityProps, StyleSheet } from "react-native";
 
 export default function PinkButton({ title, style, ...rest }) {
   return (
-    <TouchableOpacity
-      style={[styles.button, styles.elevation, style]}
-      {...rest}
-    >
+    <TouchableOpacity style={[styles.button, styles.elevation, style]} {...rest}>
       <Text style={styles.Vtext}>{title}</Text>
     </TouchableOpacity>
   );

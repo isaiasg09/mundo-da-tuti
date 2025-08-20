@@ -1,4 +1,3 @@
-// App.js
 import React from "react";
 import {
   View,
@@ -19,16 +18,14 @@ import ShellPathMap from "@/components/shellpathmap";
 import AnimatedBackground from "@/components/animatedbackgroundpath";
 
 export default function FirstPath() {
-  // const personIcon = require("../assets/images/icons/person_icon.png");
-  // const houseIcon = require("../assets/images/icons/house_icon.png");
-  // const cfgIcon = require("../assets/images/icons/cfg_icon.png");
   const arrowIcon = require("../assets/images/icons/arrow_icon.png");
   const treasureImg = require("../assets/images/treasure.png");
   const soundIcon = require("../assets/images/icons/sound_icon.png");
 
   // Recebe os parâmetros passados pela rota (neste caso, o pathId vindo da tela Home)
-  const { pathId } = useLocalSearchParams();
-  
+  const { pathId: incoming } = useLocalSearchParams();
+  const pathId = incoming || "castelo";
+
   console.log("TELA FirstPath: pathId recebido da rota é:", pathId);
 
   return (
@@ -62,9 +59,10 @@ export default function FirstPath() {
       <ShellPathMap pathId={pathId} />
 
       {/* <ScrollView></ScrollView> */}
-      <View style={styles.navBarContainer}>
-        <SimpleNavBar />
-      </View>
+      {/* <View style={styles.navBarContainer}> */}
+      <SimpleNavBar style={{ backgroundColor: "#feb4e7", zIndex: 3 }} />
+
+      {/* </View> */}
     </View>
   );
 }
@@ -89,11 +87,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     // flexDirection: "row",
-  },
-  navBarContainer: {
-    backgroundColor: "#feb4e7",
-    width: "100%",
-    // padding: 1,
   },
   rewardImg: {
     width: 120,

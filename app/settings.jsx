@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  View,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  TextInput,
-} from "react-native";
+import { View, Image, StyleSheet, Text, TouchableOpacity, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import BackButton from "@/components/backbutton";
 
@@ -40,7 +33,7 @@ export default function Settings() {
       </View>
 
       <View>
-        <Image source={profilePlaceholder} style={styles.profileImage}></Image>
+        <Image source={profilePlaceholder} style={styles.profileImage} />
 
         <Text>mudar avatar</Text>
 

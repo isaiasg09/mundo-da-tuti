@@ -18,10 +18,12 @@ const options = ["SIM", "NÃO"];
 
 export default function Pergunta3() {
   const { registrationData, setRegistrationData } = useRegistration(); // Usa o hook
+
   const [selectedOption, setSelectedOption] = useState(() => {
     // Verifica se já existe uma opção selecionada no contexto
     const savedOption = registrationData.dificuldadeInstrucoes;
-    return savedOption !== undefined ? options.indexOf(savedOption) : null;
+
+    return savedOption !== false ? options.indexOf(savedOption) : null;
   });
 
   useEffect(() => {
@@ -82,10 +84,7 @@ export default function Pergunta3() {
               onPress={() => setSelectedOption(index)}
             >
               <Text
-                style={[
-                  styles.optionText,
-                  selectedOption === index && { color: "#fff" },
-                ]}
+                style={[styles.optionText, selectedOption === index && { color: "#fff" }]}
               >
                 {label}
               </Text>
@@ -100,7 +99,7 @@ export default function Pergunta3() {
               // Botão só é opaco e clicável se alguma opção for selecionada
               { opacity: selectedOption !== null ? 1 : 0.5 },
             ]}
-            // Desabilita se nada selecionado
+            // Desabilita se nada selecionado (TODO: verificar se é necessário, pq lá no useEffect essa verificação ta meio zuada)
             disabled={selectedOption === null}
             onPress={() => {
               if (selectedOption !== null) {

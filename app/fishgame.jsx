@@ -15,7 +15,7 @@ import ConfettiCannon from "react-native-confetti-cannon";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { useGameProgress } from "../context/GameContext";
-import { CASTLE_PATH_GAMES } from "../constants/paths";
+import { PATHS } from "../constants/paths";
 import { GAME_DIFFICULTY_CONFIG } from "../constants/gameConfig";
 
 import BackButton from "@/components/backbutton";
@@ -23,6 +23,8 @@ import Fish from "@/components/Fish";
 import ProgressBar from "@/components/progressbar";
 
 const { width: windowWidth } = Dimensions.get("window");
+
+import { useLevelNavigation } from "@/hooks/useLevelNavigation";
 // Dados de CONFIGURAÇÃO dos jogos deste caminho.
 // Define as propriedades que não mudam: ID, nome, rota e posição X no mapa.
 
@@ -40,9 +42,7 @@ const BUBBLE_NUMBER_COLORS = [
 
 // Função para pegar uma cor aleatória do nosso array
 function getRandomColor() {
-  return BUBBLE_NUMBER_COLORS[
-    Math.floor(Math.random() * BUBBLE_NUMBER_COLORS.length)
-  ];
+  return BUBBLE_NUMBER_COLORS[Math.floor(Math.random() * BUBBLE_NUMBER_COLORS.length)];
 }
 
 // Função para gerar um deslocamento vertical aleatório para as bolhas
@@ -87,6 +87,7 @@ export default function FishGame() {
     difficulty = "facil", // Pega o parâmetro de dificuldade da rota. Se nenhum for passado, ele assume 'facil' como padrão.
     gameType = "fish", // Pega o parâmetro de tipo de jogo da rota. Se nenhum for passado, ele assume 'soma' como padrão.
   } = useLocalSearchParams();
+  const { openLevel, completeLevel } = useLevelNavigation(pathId);
 
   // Pega as configurações para a dificuldade atual
   const config = GAME_DIFFICULTY_CONFIG[gameType][difficulty];
@@ -134,8 +135,7 @@ export default function FishGame() {
 
     for (let i = 0; i < quantity; i++) {
       const fishNumber = Math.floor(Math.random() * MAX_QUANTITY) + 1;
-      const sizeValue =
-        Math.floor(Math.random() * (MAX_SIZE - MIN_SIZE + 1)) + MIN_SIZE;
+      const sizeValue = Math.floor(Math.random() * (MAX_SIZE - MIN_SIZE + 1)) + MIN_SIZE;
       const size = { width: sizeValue, height: sizeValue };
 
       let initialPosition,
@@ -164,9 +164,7 @@ export default function FishGame() {
         id: `fish-${i}-${Date.now()}`, // Chave única
 
         source:
-          fishNumber in fishAssets
-            ? fishAssets[fishNumber]
-            : fishAssets[fishNumber - 5], // Usa o peixe correspondente ou o peixe 1-5 se o número for maior que 5
+          fishNumber in fishAssets ? fishAssets[fishNumber] : fishAssets[fishNumber - 5], // Usa o peixe correspondente ou o peixe 1-5 se o número for maior que 5
         initialPosition,
         size,
       });
@@ -236,66 +234,34 @@ export default function FishGame() {
     generateGame(); // Gera a primeira rodada novamente
   };
 
-  // --- SUBSTITUA SUA FUNÇÃO ANTIGA POR ESTA ---
-  const handleGameCompletion = () => {
-    // 1. Encontra o índice do jogo ATUAL na nossa lista de configuração.
-    //    Isso nos diz a posição do jogo na sequência (0 para o primeiro, 1 para o segundo, etc.)
-    const currentGameIndex = CASTLE_PATH_GAMES.findIndex(
-      (game) => game.id === Number(gameId)
-    );
-
-    // 2. Checagem de segurança: se não encontrar o jogo, algo está errado (ex: gameId não foi passado corretamente).
-    if (currentGameIndex === -1) {
-      console.error(
-        "ERRO CRÍTICO: Não foi possível encontrar o jogo atual na lista. Verifique se 'gameId' está sendo passado como parâmetro na navegação."
-      );
-      Alert.alert("Erro", "Não foi possível salvar seu progresso.");
-      router.replace({ pathname: "/firstpath", params: { pathId } });
+  // Função para lidar com a conclusão do jogo
+  const handleGameCompletion = async () => {
+    if (!gameId || !pathId) {
+      Alert.alert("Erro", "Parâmetros ausentes.");
+      router.back();
       return;
     }
 
-    // 3. Prepara o objeto de atualização para o GameContext.
-    //    Começamos criando a estrutura aninhada necessária.
-    const progressUpdate = {
-      paths: {
-        [pathId]: {
-          // Usa o pathId recebido (ex: 'castelo') para modificar o caminho certo
-          games: {
-            // Usa a contextKey (ex: 'game1') para marcar o jogo correto como completo
-            [contextKey]: { status: "completed" },
-          },
-        },
-      },
-    };
+    const current = Number(gameId);
+    const next = current + 1;
 
-    // 4. Encontra o PRÓXIMO jogo na lista, se houver.
-    const nextGame = CASTLE_PATH_GAMES[currentGameIndex + 1];
+    // Marca o nível atual como concluído e tenta abrir o próximo
+    try {
+      completeLevel(current);
+      // pequeno atraso para o contexto propagar antes da checagem de bloqueio
+      // setTimeout(() => {
+      // const res = openLevel(next);
+      // if (!res || res.ok === false) {
+      //   router.back();
+      // }
 
-    if (nextGame) {
-      // 5. Se existe um próximo jogo, vamos desbloqueá-lo.
-      //    A chave de contexto do próximo jogo será `game` + seu número (índice na lista + 1).
-      const nextGameContextKey = `game${currentGameIndex + 1 + 1}`; // ex: se o atual é index 1, o próximo é index 2, a chave é 'game3'
-
-      // Adiciona a instrução para desbloquear o próximo jogo ao nosso objeto de atualização
-      progressUpdate.paths[pathId].games[nextGameContextKey] = {
-        status: "unlocked",
-      };
-    } else {
-      // 6. Se NÃO existe um próximo jogo, o jogador completou o caminho inteiro!
-
-      // Adiciona a instrução para marcar o caminho atual como 'completed'
-      progressUpdate.paths[pathId].status = "completed";
-      // E desbloqueia o próximo caminho principal (ex: 'molusco_perola')
-      progressUpdate.paths.molusco_perola = { status: "unlocked" };
+      router.replace("/firstpath", {
+        pathId: pathId,
+      });
+      // }, 50);
+    } catch (e) {
+      router.back();
     }
-
-    // 7. Envia o objeto de atualização completo para o GameContext.
-    // A função `setGameProgress` no seu contexto fará o "merge" inteligente dos dados.
-    setGameProgress(progressUpdate);
-
-    // 8. Navega o jogador de volta para a tela do mapa do caminho.
-    console.log("Jogo concluído. Voltando para o mapa do caminho...");
-    router.back();
   };
 
   // Tela de Sucesso
@@ -320,10 +286,7 @@ export default function FishGame() {
           <Text style={styles.successButtonText}>Jogar Novamente</Text>
         </TouchableOpacity> */}
 
-        <TouchableOpacity
-          style={styles.successButton}
-          onPress={handleGameCompletion}
-        >
+        <TouchableOpacity style={styles.successButton} onPress={handleGameCompletion}>
           <Text style={styles.successButtonText}>Próximo Nível</Text>
         </TouchableOpacity>
 
@@ -348,11 +311,7 @@ export default function FishGame() {
       <View style={styles.header}>
         <BackButton />
         <TouchableOpacity style={styles.soundButton}>
-          <Image
-            source={soundIcon}
-            style={styles.soundIcon}
-            resizeMode="contain"
-          />
+          <Image source={soundIcon} style={styles.soundIcon} resizeMode="contain" />
         </TouchableOpacity>
       </View>
 
@@ -397,11 +356,7 @@ export default function FishGame() {
                 style={[
                   styles.bubbleTouchable, // Novo estilo para o touchable
                   selected !== null &&
-                    (isCorrect
-                      ? styles.correct
-                      : isSelected
-                      ? styles.wrong
-                      : null), // Estilos de certo/errado
+                    (isCorrect ? styles.correct : isSelected ? styles.wrong : null), // Estilos de certo/errado
                 ]}
                 activeOpacity={0.7}
                 disabled={selected !== null} // Desabilita o toque se já houver uma resposta selecionada

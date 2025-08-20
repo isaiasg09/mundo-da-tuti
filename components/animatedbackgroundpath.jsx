@@ -15,7 +15,7 @@ export default function AnimatedBackgroundPath() {
   const coral2 = require("../assets/images/coral2.png"); // Usando a mesma imagem para exemplo
   const coral3 = require("../assets/images/coral3.png"); // Usando a mesma imagem para exemplo
   const starfish1 = require("../assets/images/estrela1.png");
-  const starfish2 = require("../assets/images/estrela2.png"); // Usando a mesma imagem para exemplo
+  const starfish2 = require("../assets/images/estrela2.png");
   const crab1 = require("../assets/images/caranguejo.png");
   const crab2 = require("../assets/images/caranguejo.png"); // Usando a mesma imagem para exemplo
 

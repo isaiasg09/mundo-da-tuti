@@ -85,9 +85,7 @@ export default function Nome() {
               value={name}
             />
 
-            {!isNameValid && (
-              <Text style={styles.errorText}>O NOME É INVÁLIDO!</Text>
-            )}
+            {!isNameValid && <Text style={styles.errorText}>O NOME É INVÁLIDO!</Text>}
 
             <Image
               source={require("../../assets/images/poses_tuti/tuti_7.png")}

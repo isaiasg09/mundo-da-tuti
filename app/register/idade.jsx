@@ -89,9 +89,7 @@ export default function Idade() {
               value={idade}
             />
 
-            {!isIdadeValid && (
-              <Text style={styles.errorText}>A IDADE É INVÁLIDA!</Text>
-            )}
+            {!isIdadeValid && <Text style={styles.errorText}>A IDADE É INVÁLIDA!</Text>}
 
             <Image
               source={require("../../assets/images/poses_tuti/tuti_7.png")}

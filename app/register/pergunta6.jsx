@@ -19,9 +19,9 @@ const options = ["SIM", "NÃO"];
 export default function Pergunta6() {
   const { registrationData, setRegistrationData } = useRegistration(); // Usa o hook
   const [selectedOption, setSelectedOption] = useState(() => {
-    // Verifica se já existe uma opção selecionada no contexto
+    // Verifica se já existe uma opção selecionada no contexto (o valor inicial no contexto é false)
     const savedOption = registrationData.interageBem;
-    return savedOption !== undefined ? options.indexOf(savedOption) : null;
+    return savedOption !== false ? options.indexOf(savedOption) : null;
   });
 
   useEffect(() => {
@@ -77,10 +77,7 @@ export default function Pergunta6() {
               onPress={() => setSelectedOption(index)}
             >
               <Text
-                style={[
-                  styles.optionText,
-                  selectedOption === index && { color: "#fff" },
-                ]}
+                style={[styles.optionText, selectedOption === index && { color: "#fff" }]}
               >
                 {label}
               </Text>

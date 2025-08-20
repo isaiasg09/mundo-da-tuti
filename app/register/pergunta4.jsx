@@ -21,7 +21,7 @@ export default function Pergunta4() {
   const [selectedOption, setSelectedOption] = useState(() => {
     // Verifica se já existe uma opção selecionada no contexto
     const savedOption = registrationData.birrasIntensas;
-    return savedOption !== undefined ? options.indexOf(savedOption) : null;
+    return savedOption !== false ? options.indexOf(savedOption) : null;
   });
 
   useEffect(() => {
@@ -45,9 +45,7 @@ export default function Pergunta4() {
         <View style={styles.header}>
           <Text style={styles.title}>SOBRE A CRIANÇA</Text>
           <Text style={styles.instruction}>MARQUE COM SIM OU NÃO:</Text>
-          <Text style={styles.question}>
-            FAZ BIRRAS INTENSAS COM FREQUÊNCIA?
-          </Text>
+          <Text style={styles.question}>FAZ BIRRAS INTENSAS COM FREQUÊNCIA?</Text>
           <Image
             source={require("@/assets/images/poses_tuti/TutiBirra.png")}
             style={styles.birraImage}
@@ -65,10 +63,7 @@ export default function Pergunta4() {
               onPress={() => setSelectedOption(index)}
             >
               <Text
-                style={[
-                  styles.optionText,
-                  selectedOption === index && { color: "#fff" },
-                ]}
+                style={[styles.optionText, selectedOption === index && { color: "#fff" }]}
               >
                 {label}
               </Text>

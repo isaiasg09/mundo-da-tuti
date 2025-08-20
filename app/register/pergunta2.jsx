@@ -18,18 +18,11 @@ const options = ["SIM", "NÃO"];
 
 export default function Pergunta2() {
   const { registrationData, setRegistrationData } = useRegistration(); // Usa o hook
-  // Inicializa selectedOption com os valores do contexto, se houver
-  // const [selectedButtons, setSelectedButtons] = useState(() => {
-  //   // Converte os nomes das síndromes salvas de volta para índices
-  //   return registrationData.sindromesCrianca
-  //     .map((syndromeName) => options.indexOf(syndromeName))
-  //     .filter((index) => index !== -1);
-  // });
 
   const [selectedOption, setSelectedOption] = useState(() => {
     // Verifica se já existe uma opção selecionada no contexto
     const savedOption = registrationData.agitada;
-    return savedOption !== undefined ? options.indexOf(savedOption) : null;
+    return savedOption !== false ? options.indexOf(savedOption) : null; // se não houver, retorna null
   });
 
   useEffect(() => {
@@ -73,10 +66,7 @@ export default function Pergunta2() {
               onPress={() => setSelectedOption(index)}
             >
               <Text
-                style={[
-                  styles.optionText,
-                  selectedOption === index && { color: "#fff" },
-                ]}
+                style={[styles.optionText, selectedOption === index && { color: "#fff" }]}
               >
                 {label}
               </Text>

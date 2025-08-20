@@ -2,13 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Image, StyleSheet } from "react-native";
 
-const Fish = ({
-  source,
-  initialPosition,
-  size,
-  containerWidth,
-  containerHeight,
-}) => {
+const Fish = ({ source, initialPosition, size, containerWidth, containerHeight }) => {
   // Guarda a posição animada do peixe (x, y). Usamos useRef para que não seja recriado a cada renderização.
   const position = useRef(new Animated.ValueXY(initialPosition)).current;
 
@@ -64,13 +58,7 @@ const Fish = ({
     ],
   };
 
-  return (
-    <Animated.Image
-      source={source}
-      style={animatedStyle}
-      resizeMode="contain"
-    />
-  );
+  return <Animated.Image source={source} style={animatedStyle} resizeMode="contain" />;
 };
 
 const styles = StyleSheet.create({
