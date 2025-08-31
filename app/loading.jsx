@@ -9,8 +9,45 @@ export default function Loading() {
   const tutiFesta = require("../assets/images/tuti_festa.png");
   const mundoImg = require("../assets/images/mundo.png");
 
-  // useEffect(() => {
-  // });
+  // Pré-carrega alguns assets críticos (shells, pérola, bolha, sombras, peixes)
+  useEffect(() => {
+    if (__DEV__) return;
+    (async () => {
+      try {
+        const mod = await import("expo-asset");
+        const { Asset } = mod;
+        const assets = [
+          // UI comuns
+          require("../assets/images/icons/sound_icon.png"),
+          require("../assets/images/bolha.png"),
+          require("../assets/images/sombra.png"),
+          // Conchas e brilho
+          require("../assets/images/shells/shell1.png"),
+          require("../assets/images/shells/shell2.png"),
+          require("../assets/images/shells/shell3.png"),
+          require("../assets/images/shells/shell4.png"),
+          require("../assets/images/shells/shell5.png"),
+          require("../assets/images/brilho.png"),
+          // Pérola e glow
+          require("../assets/images/perola.png"),
+          require("../assets/images/wm_s2.png"),
+          // Peixes
+          require("../assets/images/fishs/fish1.png"),
+          require("../assets/images/fishs/fish2.png"),
+          require("../assets/images/fishs/fish3.png"),
+          require("../assets/images/fishs/fish4.png"),
+          require("../assets/images/fishs/fish5.png"),
+        ];
+        await Promise.all(assets.map((a) => Asset.fromModule(a).downloadAsync()));
+      } catch (e) {
+        // Se o pacote não estiver instalado, apenas ignore
+        if (!__DEV__) {
+          // Apenas em produção, para evitar spam de logs durante o desenvolvimento
+          console.warn("Pré-carregamento de assets indisponível:", e?.message);
+        }
+      }
+    })();
+  }, []);
 
   const rotateAnim = useRef(new Animated.Value(0)).current;
 

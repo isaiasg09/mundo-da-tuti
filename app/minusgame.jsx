@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,9 +7,10 @@ import {
   TouchableOpacity,
   ImageBackground,
   TouchableWithoutFeedback,
+  BackHandler,
 } from "react-native";
 import { scale, verticalScale, moderateScale } from "react-native-size-matters";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 
 // Importações para a lógica de jogo
 import { GAME_DIFFICULTY_CONFIG } from "@/constants/gameConfig"; // Importa nossa configuração
@@ -24,6 +25,29 @@ const TOTAL_ROUNDS = 5;
 export default function MinusGame() {
   const router = useRouter();
   const confettiRef = useRef(null);
+  const markedRef = useRef(false);
+
+  // Intercepta o botão físico de voltar do Android
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        // Se o jogo foi ganho, vai para home; senão volta para o caminho
+        if (isGameWon) {
+          router.replace("/home");
+        } else {
+          openMap(); // Volta para o caminho/mapa
+        }
+        return true; // Previne o comportamento padrão
+      };
+
+      // Adiciona o listener para o botão de voltar
+      const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+
+      // Remove o listener quando a tela perde o foco
+      return () => subscription?.remove();
+    }, [isGameWon, openMap, router])
+  );
+
   const {
     pathId,
     gameId,
@@ -34,7 +58,7 @@ export default function MinusGame() {
   // Pega as configurações para a dificuldade atual
   const config = GAME_DIFFICULTY_CONFIG[gameType][difficulty];
 
-  const { openLevel, completeLevel } = useLevelNavigation(pathId);
+  const { onWinMarkOnly, openNext, openMap } = useLevelNavigation(pathId);
 
   const [num1, setNum1] = useState(0);
   const [num2, setNum2] = useState(0);
@@ -91,6 +115,12 @@ export default function MinusGame() {
   // Efeito para verificar se o jogo foi ganho e disparar os confetes com delayzinho de 100ms
   useEffect(() => {
     if (isGameWon && confettiRef.current) {
+      // marca conclusão uma única vez
+      const current = Number(gameId);
+      if (!markedRef.current && current) {
+        onWinMarkOnly(current);
+        markedRef.current = true;
+      }
       setTimeout(() => confettiRef.current.start(), 100);
     }
   }, [isGameWon]);
@@ -127,19 +157,10 @@ export default function MinusGame() {
       return;
     }
     const current = Number(gameId);
-    const next = current + 1;
     try {
-      completeLevel(current);
-      // setTimeout(() => {
-      //   const res = openLevel(next);
-      //   if (!res || res.ok === false) {
-      //     router.back();
-      //   }
-      // }, 50);
-
-      router.replace("/firstpath");
+      openNext(current);
     } catch (e) {
-      router.back();
+      openMap();
     }
   };
 
@@ -165,6 +186,19 @@ export default function MinusGame() {
         <TouchableOpacity style={successStyles.button} onPress={handleGameCompletion}>
           <Text style={successStyles.buttonText}>Próximo Nível</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            successStyles.button,
+            { backgroundColor: "transparent", borderWidth: 2, borderColor: "#9d59ff" },
+          ]}
+          onPress={() => openMap()}
+        >
+          <Text
+            style={{ color: "#9d59ff", fontSize: moderateScale(18), fontWeight: "bold" }}
+          >
+            Voltar ao Caminho
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -173,7 +207,7 @@ export default function MinusGame() {
     <View style={styles.container}>
       {/* Top icons */}
       <View style={styles.topBar}>
-        <BackButton />
+        <BackButton onPress={() => (isGameWon ? router.replace("/home") : openMap())} />
 
         <Image
           source={require("../assets/images/icons/sound_icon.png")}
@@ -214,7 +248,7 @@ export default function MinusGame() {
       <View style={styles.bubblesRow}>
         {bubbleData.map((bubble, index) => {
           const isSelected = selectedAnswer === bubble.value;
-          const isCorrect = bubble.value === num1 + num2;
+          const isCorrect = bubble.value === num1 - num2;
           return (
             <TouchableOpacity
               key={index}

@@ -2,10 +2,10 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import { View, Text } from "react-native";
+import { Text, View } from "react-native";
 import "react-native-reanimated";
-import { RegistrationProvider } from "../context/RegistrationContext";
 import { GameProvider } from "../context/GameContext";
+import { RegistrationProvider } from "../context/RegistrationContext";
 
 SplashScreen.preventAutoHideAsync();
 

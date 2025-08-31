@@ -65,9 +65,9 @@ const stateColors = {
 
 const { height: windowHeight, width: windowWidth } = Dimensions.get("window");
 
-const createSharedScales = (count) => {
-  return Array.from({ length: count }, () => useSharedValue(1));
-};
+// const createSharedScales = (count) => {
+//   return Array.from({ length: count }, () => useSharedValue(1));
+// };
 
 // --- NOVA FUNÇÃO PARA PRÉ-CARREGAR OS JOGOS ---
 // Esta função mapeia uma rota para sua importação dinâmica explícita.
@@ -230,14 +230,14 @@ export default function ShellPathMap({ pathId }) {
   };
 
   const router = useRouter();
-  const scales = createSharedScales(levels.length);
+  // const scales = createSharedScales(levels.length);
 
   // Iniciar animações (uma vez)
-  useEffect(() => {
-    scales.forEach((scale) => {
-      scale.value = withRepeat(withTiming(1.05, { duration: 1200 }), -1, true);
-    });
-  }, []);
+  // useEffect(() => {
+  //   scales.forEach((scale) => {
+  //     scale.value = withRepeat(withTiming(1.05, { duration: 1200 }), -1, true);
+  //   });
+  // }, []);
 
   return (
     <View style={styles.container}>
@@ -267,6 +267,7 @@ export default function ShellPathMap({ pathId }) {
           strokeLinecap="round"
           // strokeDasharray={"10 8"}
           strokeDasharray={levels[0].state === LEVEL_STATES.COMPLETED ? "0" : "10 8"}
+          pointerEvents="box-none"
         />
 
         {/* Caminhos entre os níveis */}
@@ -282,6 +283,7 @@ export default function ShellPathMap({ pathId }) {
             strokeDasharray={
               levels[index + 1].state === LEVEL_STATES.COMPLETED ? "0" : "10 8"
             }
+            pointerEvents="box-none"
           />
         ))}
 
@@ -300,6 +302,7 @@ export default function ShellPathMap({ pathId }) {
           fill="none"
           strokeLinecap="round"
           strokeDasharray={"10 8"}
+          pointerEvents="box-none"
         />
       </Svg>
 
@@ -307,7 +310,7 @@ export default function ShellPathMap({ pathId }) {
       {levels.map((level, index) => {
         const animatedStyle = useAnimatedStyle(() => ({
           transform: [
-            { scale: scales[index].value },
+            // { scale: scales[index].value },
             {
               rotate: index < 3 ? `${(index * 20) % 360}deg` : `${(index * -5) % 360}deg`,
             },
@@ -323,7 +326,7 @@ export default function ShellPathMap({ pathId }) {
                 top: level.y - 42.5,
                 left: level.x - 42.5,
               },
-              animatedStyle,
+              level.state === "unlocked" && animatedStyle, // aplica animação apenas se desbloqueado
             ]}
           >
             {/* brilho atrás da concha
@@ -353,7 +356,7 @@ export default function ShellPathMap({ pathId }) {
                 )}
               </ImageBackground>
             </TouchableOpacity> */}
-            
+
             <LevelNode
               id={level.id}
               x={level.x}

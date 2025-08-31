@@ -1,13 +1,11 @@
 import { useRouter } from "expo-router";
-import { PATHS } from "@/constants/paths";
+import { PATHS, PATH_TO_SCREEN } from "@/constants/paths";
 import { useGameProgress } from "@/context/GameContext";
-
-const PATH_TO_SCREEN = { castelo: "/firstpath", molusco_perola: "/secondpath" };
 
 export function useLevelNavigation(pathId) {
   const router = useRouter();
   const ctx = useGameProgress();
-  const { isLevelLocked, completeLevel } = ctx || {};
+  const { isLevelLocked, completeLevel, markLevelCompleted } = ctx || {};
 
   const getLevelConfig = (levelIndex1Based) => {
     if (!pathId || !PATHS[pathId]) return undefined;
@@ -40,6 +38,15 @@ export function useLevelNavigation(pathId) {
     return { ok: true };
   }
 
+  // Marca apenas o nível atual como concluído (sem navegar)
+  function markCompleted(levelIndex1Based) {
+    if (!pathId || !PATHS[pathId]) return { ok: false, reason: "invalid-path" };
+    if (typeof markLevelCompleted === "function")
+      markLevelCompleted(pathId, levelIndex1Based);
+    return { ok: true };
+  }
+
+  // Conclui e tenta abrir o próximo; se não der, volta ao mapa
   function completeLevelAndMaybeOpenNext(levelIndex1Based) {
     if (!pathId || !PATHS[pathId]) return { ok: false, reason: "invalid-path" };
     if (typeof completeLevel === "function") completeLevel(pathId, levelIndex1Based);
@@ -47,10 +54,34 @@ export function useLevelNavigation(pathId) {
     const next = levelIndex1Based + 1;
     const res = openLevel(next);
     if (!res || res.ok === false) {
+      // Usa a mesma lógica do openMap() para garantir navegação correta
       const screen = PATH_TO_SCREEN[pathId] || "/firstpath";
-      router.replace({ pathname: screen, params: { pathId } });
+      router.dismissAll();
+      router.push({ pathname: screen, params: { pathId } });
     }
     return { ok: true };
+  }
+
+  // Utilitário para telas de vitória: marca conclusão imediatamente (inclui avanço de caminho no último nível), sem navegar
+  function onWinMarkOnly(levelIndex1Based) {
+    if (!pathId || !PATHS[pathId]) return { ok: false, reason: "invalid-path" };
+    if (typeof completeLevel === "function") completeLevel(pathId, levelIndex1Based);
+    return { ok: true };
+  }
+
+  function openMap() {
+    const screen = PATH_TO_SCREEN[pathId] || "/firstpath";
+    // Navegar de volta para a home primeiro, depois para o mapa
+    // Isso garante que o BackButton na tela do mapa leve de volta para a home
+    router.dismissAll();
+    router.push({ pathname: screen, params: { pathId } });
+  }
+
+  function openNext(levelIndex1Based) {
+    const next = levelIndex1Based + 1;
+    const res = openLevel(next);
+    if (!res || res.ok === false) openMap();
+    return res;
   }
 
   return {
@@ -58,5 +89,9 @@ export function useLevelNavigation(pathId) {
     completeLevel: completeLevelAndMaybeOpenNext,
     getLevelConfig,
     levelCount,
+    markCompleted,
+    onWinMarkOnly,
+    openMap,
+    openNext,
   };
 }

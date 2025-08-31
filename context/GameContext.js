@@ -1,6 +1,10 @@
 // context/GameContext.js
-import React, { createContext, useState, useContext, useEffect } from "react";
-import { PATHS } from "@/constants/paths";
+import React, { createContext, useState, useContext, useEffect, useRef } from "react";
+import { PATHS, PATH_ORDER } from "@/constants/paths";
+
+const STORAGE_KEY = "@mdt:progress:v1";
+
+const RESET_PROGRESS_ON_START = false;
 
 const initialGameProgress = {
   paths: {
@@ -10,10 +14,10 @@ const initialGameProgress = {
       games: {
         // O status de cada um dos 6 jogos dentro deste caminho
         game1: { status: "unlocked" }, // O primeiro jogo (FishGame) começa desbloqueado
-        game2: { status: "unlocked" },
-        game3: { status: "unlocked" },
-        game4: { status: "unlocked" },
-        game5: { status: "unlocked" },
+        game2: { status: "locked" },
+        game3: { status: "locked" },
+        game4: { status: "locked" },
+        game5: { status: "locked" },
         game6: { status: "locked" },
       },
     },
@@ -41,10 +45,67 @@ const GameContext = createContext({
 });
 
 const STATUS = { LOCKED: "locked", UNLOCKED: "unlocked", COMPLETED: "completed" };
-const PATH_ORDER = ["castelo", "molusco_perola"]; // ordem dos caminhos
 
 export const GameProvider = ({ children }) => {
   const [gameProgress, setGameProgressState] = useState(initialGameProgress);
+  const asyncStorageRef = useRef(null);
+  const saveTimer = useRef(null);
+
+  // Deep merge util (objects only)
+  const deepMerge = (target, source) => {
+    const out = Array.isArray(target) ? [...target] : { ...target };
+    if (!source) return out;
+    Object.keys(source).forEach((key) => {
+      const srcVal = source[key];
+      const tgtVal = out[key];
+      if (srcVal && typeof srcVal === "object" && !Array.isArray(srcVal)) {
+        out[key] = deepMerge(tgtVal || {}, srcVal);
+      } else {
+        out[key] = srcVal;
+      }
+    });
+    return out;
+  };
+
+  // Lazy-load AsyncStorage and hydrate saved progress
+  useEffect(() => {
+    (async () => {
+      if (RESET_PROGRESS_ON_START && asyncStorageRef.current) {
+        await asyncStorageRef.current.removeItem(STORAGE_KEY);
+        setGameProgressState(initialGameProgress);
+        return;
+      }
+
+      try {
+        const mod = await import("@react-native-async-storage/async-storage");
+        asyncStorageRef.current = mod.default;
+        const raw = await asyncStorageRef.current.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          // Merge with initial to keep any new keys introduced by updates
+          setGameProgressState((prev) => deepMerge(prev, parsed));
+        }
+      } catch (e) {
+        console.warn(
+          "AsyncStorage indisponível (modo dev ou dependência não instalada). Progresso será mantido apenas em memória."
+        );
+      }
+    })();
+  }, []);
+
+  // Debounced persist whenever gameProgress changes
+  useEffect(() => {
+    if (!asyncStorageRef.current) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        await asyncStorageRef.current.setItem(STORAGE_KEY, JSON.stringify(gameProgress));
+      } catch (e) {
+        console.warn("Falha ao salvar progresso localmente:", e?.message);
+      }
+    }, 300);
+    return () => saveTimer.current && clearTimeout(saveTimer.current);
+  }, [gameProgress]);
 
   const handleSetGameProgress = (newData) => {
     // Lógica de merge profundo para atualizar estados aninhados sem apagar dados
@@ -100,15 +161,11 @@ export const GameProvider = ({ children }) => {
     });
   };
 
-  // Se o ultimo nível do caminho foi completado, desbloqueia o próximo caminho
-
+  // Se o ultimo nível do caminho foi completado, desbloqueia o próximo nível
   const unlockNextLevel = (pathId, currentLevelIndex1Based) => {
     const nextKey = getGameKey(currentLevelIndex1Based + 1);
-
     const games = gameProgress.paths?.[pathId]?.games;
-
     if (games && games[nextKey] && games[nextKey].status === STATUS.LOCKED) {
-      console.log("Desbloqueando próximo nível:", nextKey);
       updateGameStatus(pathId, nextKey, STATUS.UNLOCKED);
     }
   };
@@ -140,10 +197,6 @@ export const GameProvider = ({ children }) => {
       handleSetGameProgress(update);
     }
   };
-
-  useEffect(() => {
-    console.log("PROGRESSO DO JOGO ATUALIZADO:", gameProgress);
-  }, [gameProgress]);
 
   return (
     <GameContext.Provider

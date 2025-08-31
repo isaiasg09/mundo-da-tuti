@@ -1,22 +1,21 @@
-import React, { useEffect, useState, useRef } from "react";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  View,
+  Alert,
+  BackHandler,
+  Dimensions,
   Image,
+  ImageBackground,
   StyleSheet,
   Text,
   TouchableOpacity,
-  Animated,
-  Dimensions,
-  ImageBackground,
-  Alert,
   TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import ConfettiCannon from "react-native-confetti-cannon";
-import { router, useLocalSearchParams } from "expo-router";
 
-import { useGameProgress } from "../context/GameContext";
-import { PATHS } from "../constants/paths";
 import { GAME_DIFFICULTY_CONFIG } from "../constants/gameConfig";
+import { useGameProgress } from "../context/GameContext";
 
 import BackButton from "@/components/backbutton";
 import Fish from "@/components/Fish";
@@ -25,6 +24,7 @@ import ProgressBar from "@/components/progressbar";
 const { width: windowWidth } = Dimensions.get("window");
 
 import { useLevelNavigation } from "@/hooks/useLevelNavigation";
+import { verticalScale } from "react-native-size-matters";
 // Dados de CONFIGURAÇÃO dos jogos deste caminho.
 // Define as propriedades que não mudam: ID, nome, rota e posição X no mapa.
 
@@ -56,6 +56,28 @@ const ROUNDS_TO_WIN = 5;
 
 export default function FishGame() {
   const confettiRef = useRef(null); // Referência para o ConfettiCannon
+  const markedRef = useRef(false);
+
+  // Intercepta o botão físico de voltar do Android
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        // Se o jogo foi ganho, vai para home; senão volta para o caminho
+        if (isGameWon) {
+          router.replace("/home");
+        } else {
+          openMap(); // Volta para o caminho/mapa
+        }
+        return true; // Previne o comportamento padrão
+      };
+
+      // Adiciona o listener para o botão de voltar
+      const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+
+      // Remove o listener quando a tela perde o foco
+      return () => subscription?.remove();
+    }, [isGameWon, openMap, router])
+  );
 
   // Nova função para disparar os confetes quando a imagem for clicada
   const fireConfetti = () => {
@@ -87,7 +109,7 @@ export default function FishGame() {
     difficulty = "facil", // Pega o parâmetro de dificuldade da rota. Se nenhum for passado, ele assume 'facil' como padrão.
     gameType = "fish", // Pega o parâmetro de tipo de jogo da rota. Se nenhum for passado, ele assume 'soma' como padrão.
   } = useLocalSearchParams();
-  const { openLevel, completeLevel } = useLevelNavigation(pathId);
+  const { onWinMarkOnly, openNext, openMap } = useLevelNavigation(pathId);
 
   // Pega as configurações para a dificuldade atual
   const config = GAME_DIFFICULTY_CONFIG[gameType][difficulty];
@@ -100,15 +122,19 @@ export default function FishGame() {
   useEffect(() => {
     // Se o jogo foi ganho...
     if (isGameWon) {
-      // Usamos um pequeno timeout para garantir que o componente ConfettiCannon
-      // já tenha sido montado e a ref esteja conectada antes de chamarmos o .start()
+      // Marca conclusão imediatamente (uma vez)
+      const current = Number(gameId);
+      if (!markedRef.current && current) {
+        onWinMarkOnly(current);
+        markedRef.current = true;
+      }
+      // Dispara confete
       if (confettiRef.current) {
         console.log("Disparando confetes de dentro do setTimeout...");
         confettiRef.current.start();
       } else {
-        // Se esta mensagem aparecer, algo mais fundamental está errado.
         console.log("A ref do confete ainda é nula mesmo após o timeout.");
-      } // 100ms é um atraso pequeno, geralmente imperceptível para o usuário.
+      }
     }
   }, [isGameWon]); // Dispara quando isGameWon muda para true
 
@@ -241,26 +267,11 @@ export default function FishGame() {
       router.back();
       return;
     }
-
     const current = Number(gameId);
-    const next = current + 1;
-
-    // Marca o nível atual como concluído e tenta abrir o próximo
     try {
-      completeLevel(current);
-      // pequeno atraso para o contexto propagar antes da checagem de bloqueio
-      // setTimeout(() => {
-      // const res = openLevel(next);
-      // if (!res || res.ok === false) {
-      //   router.back();
-      // }
-
-      router.replace("/firstpath", {
-        pathId: pathId,
-      });
-      // }, 50);
+      openNext(current);
     } catch (e) {
-      router.back();
+      openMap();
     }
   };
 
@@ -289,6 +300,9 @@ export default function FishGame() {
         <TouchableOpacity style={styles.successButton} onPress={handleGameCompletion}>
           <Text style={styles.successButtonText}>Próximo Nível</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.successButtonSecondary} onPress={() => openMap()}>
+          <Text style={styles.successButtonTextSecondary}>Voltar ao Caminho</Text>
+        </TouchableOpacity>
 
         {/* Canhão de Confetes! */}
         <ConfettiCannon
@@ -309,7 +323,7 @@ export default function FishGame() {
     <View style={styles.gameContainer}>
       {/* Topo da tela com botões */}
       <View style={styles.header}>
-        <BackButton />
+        <BackButton onPress={() => (isGameWon ? router.replace("/home") : openMap())} />
         <TouchableOpacity style={styles.soundButton}>
           <Image source={soundIcon} style={styles.soundIcon} resizeMode="contain" />
         </TouchableOpacity>
@@ -371,7 +385,11 @@ export default function FishGame() {
         })}
       </View>
 
-      <ProgressBar step={correctAnswersCount} totalSteps={ROUNDS_TO_WIN} />
+      <ProgressBar
+        step={correctAnswersCount}
+        totalSteps={ROUNDS_TO_WIN}
+        style={{ bottom: verticalScale(20) }}
+      />
     </View>
   );
 }

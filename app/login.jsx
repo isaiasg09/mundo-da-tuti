@@ -79,8 +79,9 @@ export default function Login() {
     // 2. Pré-carrega a tela destino
     await import("./home"); // Caminho da próxima tela
 
-    // 3. Navega quando estiver carregado
-    router.replace("./home");
+    // 3. Limpa a pilha de navegação e vai para home (impede voltar para login)
+    router.dismissAll();
+    router.push("./home");
 
     setIsLoading(false);
   };

@@ -5,7 +5,6 @@ module.exports = function (api) {
     presets: ["@babel/preset-react", "babel-preset-expo"],
     plugins: [
       "@babel/plugin-syntax-jsx",
-      // "expo-router/babel",
       "@babel/plugin-proposal-export-namespace-from",
       "react-native-reanimated/plugin",
     ],

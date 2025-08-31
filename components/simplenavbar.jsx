@@ -30,7 +30,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     width: "100%",
     padding: 20,
-    zIndex: 5,
     elevation: 5,
   },
   navButton: {

@@ -3,5 +3,8 @@
   "trailingComma": "es5",
   "printWidth": 90,
   "semi": true,
-  "arrowParens": "always"
+  "arrowParens": "always",
+  "tabWidth": 2,
+  "bracketSpacing": true,
+  "endOfLine": "lf"
 }

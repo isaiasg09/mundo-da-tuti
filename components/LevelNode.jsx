@@ -77,28 +77,35 @@ export default function LevelNode({
       ]}
       accessibilityLabel={`Nível ${id} ${locked ? "bloqueado" : "disponível"}`}
       accessible
+      pointerEvents="box-none"
     >
+      {/* Glow layer - completamente isolado e atrás de tudo */}
       {glowImg && (
-        <Image
-          source={glowImg}
-          resizeMode="contain"
-          style={[
-            styles.glow,
-            {
-              width: glowSize,
-              height: glowSize,
-              top: glowOffset,
-              left: glowOffset,
-              opacity: variant === "pearl" ? 0.9 : 1,
-            },
-          ]}
-        />
+        <View style={[StyleSheet.absoluteFill, { zIndex: -1 }]} pointerEvents="none">
+          <Image
+            source={glowImg}
+            resizeMode="contain"
+            style={[
+              styles.glow,
+              {
+                width: glowSize,
+                height: glowSize,
+                top: glowOffset,
+                left: glowOffset,
+                opacity: variant === "pearl" ? 0.9 : 1,
+              },
+            ]}
+            pointerEvents="none"
+          />
+        </View>
       )}
 
+      {/* Botão clicável - sempre acima do glow */}
       <TouchableOpacity
         activeOpacity={locked ? 1 : 0.6}
         onPress={handlePress}
-        style={{ flex: 1 }}
+        style={{ flex: 1, zIndex: 10 }}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <ContainerImage
           source={containerImageSource}
@@ -110,15 +117,16 @@ export default function LevelNode({
             locked && variant === "pearl" && { opacity: 0.5 },
           ]}
         >
-          <Text
-            style={[
-              variant === "shell" ? styles.shellLabel : styles.pearlLabel,
-              // Mantém a sombra original mesmo quando completo
-            ]}
-          >
+          <Text style={[variant === "shell" ? styles.shellLabel : styles.pearlLabel]}>
             {id}
           </Text>
           {locked && <Text style={styles.lockSymbol}>🔒</Text>}
+
+          {completed && (
+            <View style={styles.completedBadge} pointerEvents="none">
+              <Text style={styles.completedCheck}>✓</Text>
+            </View>
+          )}
         </ContainerImage>
       </TouchableOpacity>
     </Animated.View>
@@ -134,7 +142,7 @@ const styles = StyleSheet.create({
   },
   glow: {
     position: "absolute",
-    zIndex: -1,
+    zIndex: -99,
   },
   shellImage: {
     width: 85,
@@ -169,5 +177,23 @@ const styles = StyleSheet.create({
     bottom: 4,
     fontSize: 20,
     color: "#fff",
+  },
+  completedBadge: {
+    position: "absolute",
+    right: -2,
+    top: -2,
+    backgroundColor: "#4CAF50",
+    borderRadius: 10,
+    minWidth: 18,
+    minHeight: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 2,
+  },
+  completedCheck: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "bold",
+    lineHeight: 16,
   },
 });

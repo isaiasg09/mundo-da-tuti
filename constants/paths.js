@@ -101,6 +101,15 @@ export const PATHS = {
   ],
 };
 
+// Ordem dos caminhos do jogo (para desbloqueio sequencial)
+export const PATH_ORDER = ["castelo", "molusco_perola"];
+
+// Mapeamento de caminho para a tela correspondente (expo-router pathname)
+export const PATH_TO_SCREEN = {
+  castelo: "/firstpath",
+  molusco_perola: "/secondpath",
+};
+
 export const PROFILE_IMAGE_OPTIONS = [
   {
     key: "perfil_tuti.png",

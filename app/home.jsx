@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Image,
@@ -7,9 +7,10 @@ import {
   Dimensions,
   ImageBackground,
   Text,
+  BackHandler,
 } from "react-native";
 import NavBar from "@/components/navbar";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 // Importações do Reanimated que você já tem
 import Animated, {
   useSharedValue,
@@ -52,6 +53,22 @@ export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const { gameProgress } = useGameProgress(); // progresso global
+
+  // Intercepta o botão físico de voltar do Android
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        // Não permite voltar da tela home - mantém na home
+        return true; // Previne o comportamento padrão (bloqueia a navegação)
+      };
+
+      // Adiciona o listener para o botão de voltar
+      const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+
+      // Remove o listener quando a tela perde o foco
+      return () => subscription?.remove();
+    }, [router])
+  );
 
   // --- LÓGICA DE NAVEGAÇÃO ATUALIZADA ---
   const handlePathNavigate = () => {

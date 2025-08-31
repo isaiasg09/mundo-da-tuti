@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   View,
   Image,
@@ -8,9 +8,10 @@ import {
   ScrollView,
   ImageBackground,
   Alert,
+  BackHandler,
 } from "react-native";
 
-import { useLocalSearchParams } from "expo-router"; // Importe este hook para receber parâmetros
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router"; // Importe este hook para receber parâmetros
 
 import SimpleNavBar from "@/components/simplenavbar";
 import BackButton from "@/components/backbutton";
@@ -25,6 +26,24 @@ export default function FirstPath() {
   // Recebe os parâmetros passados pela rota (neste caso, o pathId vindo da tela Home)
   const { pathId: incoming } = useLocalSearchParams();
   const pathId = incoming || "castelo";
+  const router = useRouter();
+
+  // Intercepta o botão físico de voltar do Android
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        // Vai para a tela home ao invés de voltar por onde veio
+        router.replace("/home");
+        return true; // Previne o comportamento padrão
+      };
+
+      // Adiciona o listener para o botão de voltar
+      const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+
+      // Remove o listener quando a tela perde o foco
+      return () => subscription?.remove();
+    }, [router])
+  );
 
   console.log("TELA FirstPath: pathId recebido da rota é:", pathId);
 
@@ -33,6 +52,7 @@ export default function FirstPath() {
       <AnimatedBackground />
       <View style={styles.topButtonsContainer}>
         <BackButton
+          onPress={() => router.replace("/home")}
           style={{
             flex: "0 0 auto",
           }}
@@ -60,7 +80,7 @@ export default function FirstPath() {
 
       {/* <ScrollView></ScrollView> */}
       {/* <View style={styles.navBarContainer}> */}
-      <SimpleNavBar style={{ backgroundColor: "#feb4e7", zIndex: 3 }} />
+      <SimpleNavBar style={{ backgroundColor: "#feb4e7" }} />
 
       {/* </View> */}
     </View>
