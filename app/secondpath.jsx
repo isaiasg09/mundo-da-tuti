@@ -1,29 +1,27 @@
+import BackButton from "@/components/backbutton";
+import LevelNode from "@/components/LevelNode";
+import SimpleNavBar from "@/components/simplenavbar";
+import { useGameProgress } from "@/context/GameContext";
+import { useRegistration } from "@/context/RegistrationContext";
+import { useLevelNavigation } from "@/hooks/useLevelNavigation";
+import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
-  View,
+  Dimensions,
+  Image,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Image,
-  Dimensions,
-  ScrollView,
-  Text,
-  Pressable,
+  View,
 } from "react-native";
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
   Easing,
+  useAnimatedStyle,
+  useSharedValue,
   withRepeat,
+  withTiming,
 } from "react-native-reanimated";
-import Svg, { Path, Defs, RadialGradient, Stop, Rect } from "react-native-svg";
-import BackButton from "@/components/backbutton";
-import SimpleNavBar from "@/components/simplenavbar";
-import { useLocalSearchParams } from "expo-router";
-import { useRegistration } from "@/context/RegistrationContext";
-import LevelNode from "@/components/LevelNode";
-import { useLevelNavigation } from "@/hooks/useLevelNavigation";
-import { useGameProgress } from "@/context/GameContext";
+import Svg, { Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -153,7 +151,7 @@ export default function SecondPath() {
     { x: 200, y: 550 }, // Nível 5
     { x: 200, y: 700 }, // Nível 6
     { x: 300, y: 850 }, // Nível 7
-    // { x: 300, y: 800 }, // Nível 8
+    { x: 150, y: 950 }, // Nível 8
   ];
 
   // Calcula a altura máxima lógica

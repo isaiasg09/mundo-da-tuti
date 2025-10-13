@@ -9,11 +9,21 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import ConfettiCannon from "react-native-confetti-cannon";
+
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import { scale, verticalScale } from "react-native-size-matters";
+
+import { GAME_DIFFICULTY_CONFIG } from "../constants/gameConfig";
 import { useLevelNavigation } from "../hooks/useLevelNavigation";
 
-import GameHeader from "@/components/gameheader"; // Agora default import
+import GameHeader from "@/components/gameheader";
 import ProgressBar from "@/components/progressbar";
+import WinScreen from "@/components/WinScreen";
 import { Image, ImageBackground } from "expo-image";
 
 // Assets
@@ -37,22 +47,97 @@ const cards = [
 
 const { width, height } = Dimensions.get("window");
 
+const AnimatedCard = ({ item, isFlipped, isMatched, onFlip, disabled }) => {
+  const flipValue = useSharedValue(0);
+
+  const [showFront, setShowFront] = useState(false);
+
+  // Animar quando isFlipped ou isMatched muda
+  useEffect(() => {
+    if (isFlipped || isMatched) {
+      // Virar para frente (mostrar imagem)
+      flipValue.value = withTiming(180, { duration: 600 });
+    } else {
+      // Virar para trás (mostrar capa)
+      flipValue.value = withTiming(0, { duration: 600 });
+    }
+  }, [isFlipped, isMatched]);
+
+  // Estilo da frente da carta (capa)
+  const frontStyle = useAnimatedStyle(() => {
+    const rotateY = interpolate(flipValue.value, [0, 90, 180], [0, -90, -180]);
+    // const opacity = interpolate(flipValue.value, [0, 90, 180], [1, 0, 0]);
+
+    return {
+      transform: [{ rotateY: `${rotateY}deg` }],
+      // opacity,
+      backfaceVisibility: "hidden",
+    };
+  });
+
+  // Estilo da parte de trás da carta (imagem)
+  const backStyle = useAnimatedStyle(() => {
+    const rotateY = interpolate(flipValue.value, [0, 90, 180], [180, 90, 0]);
+    // const opacity = interpolate(flipValue.value, [0, 90, 180], [0, 0, 1]);
+
+    return {
+      transform: [{ rotateY: `${rotateY}deg` }],
+      // opacity,
+      backfaceVisibility: "hidden",
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    };
+  });
+
+  const cardColor = isMatched ? "#27AE60" : item.color;
+
+  return (
+    <TouchableOpacity style={styles.cardContainer} onPress={onFlip} disabled={disabled}>
+      {/* Sombra falsa preenchida */}
+      <View style={styles.fakeShadow} />
+
+      {/* Frente da carta (capa) */}
+      <Animated.View style={[styles.card, { backgroundColor: "#fff7ed" }, frontStyle]}>
+        <Image source={cardcoverImg} style={styles.cardBack} contentFit="contain" />
+      </Animated.View>
+
+      {/* Verso da carta (imagem) */}
+      <Animated.View style={[styles.card, { backgroundColor: cardColor }, backStyle]}>
+        <Image source={item.image} style={styles.cardImage} contentFit="contain" />
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
 export default function MemoryGame() {
   // Hooks de parâmetros e navegação
-  const { pathId, gameId } = useLocalSearchParams();
-  const { openMap } = useLevelNavigation(pathId);
+  const {
+    pathId,
+    gameId,
+    difficulty = "facil", // Pega o parâmetro de dificuldade da rota mas deixa o padrão como fácil
+    gameType = "memory", // Pega o parâmetro de tipo de jogo da rota mas deixa o padrão como memória
+  } = useLocalSearchParams();
+  const { openMap, openNext, completeLevel, onWinMarkOnly } = useLevelNavigation(pathId);
 
-  // Estados do jogo
-  const [deck, setDeck] = useState([]);
-  const [flippedCards, setFlippedCards] = useState([]);
-  const [matchedCards, setMatchedCards] = useState([]);
-  const [score, setScore] = useState(0);
-  const [isGameWon, setIsGameWon] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
+  // Pega as configurações para a dificuldade atual nas constantes
+  const config = GAME_DIFFICULTY_CONFIG[gameType][difficulty];
+
+  // Estados do jogo:
+  const [deck, setDeck] = useState([]); // Array embaralhado das cartas
+  const [flippedCards, setFlippedCards] = useState([]); // uniqueIds das cartas viradas
+  const [matchedCards, setMatchedCards] = useState([]); // uniqueIds das cartas combinadas
+  const [score, setScore] = useState(0); // Número de pares encontrados
+  const [isGameWon, setIsGameWon] = useState(false); // Indica se o jogo foi ganho
+  const [isChecking, setIsChecking] = useState(false); // Previne múltiplas interações
 
   // Interceptar botão físico de voltar
   useFocusEffect(
+    // useCallback foi usado para memorizar a função e evitar loops infinitos
     React.useCallback(() => {
+      // função pra lidar com o botão de voltar: se o jogo foi ganho, vai pra home; se não, abre o mapa
       const onBackPress = () => {
         if (isGameWon) {
           router.replace("/home");
@@ -62,14 +147,17 @@ export default function MemoryGame() {
         return true;
       };
 
+      // Adiciona o listener para o botão de voltar no botão físico do celular
       const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
       return () => subscription.remove();
     }, [isGameWon, openMap])
   );
 
-  // Criar deck embaralhado
+  // Criar deck embaralhado baseado na dificuldade
   const createDeck = () => {
-    const duplicatedCards = [...cards, ...cards];
+    // Seleciona apenas o número de cartas necessárias baseado na configuração
+    const selectedCards = cards.slice(0, config.pairs);
+    const duplicatedCards = [...selectedCards, ...selectedCards];
     return duplicatedCards
       .map((card, index) => ({
         ...card,
@@ -83,12 +171,23 @@ export default function MemoryGame() {
     setDeck(createDeck());
   }, []);
 
-  // Verificar vitória
+  // Verificar vitória baseada na configuração de dificuldade
   useEffect(() => {
-    if (matchedCards.length === cards.length * 2 && matchedCards.length > 0) {
+    const totalCardsForDifficulty = config.pairs * 2;
+    if (matchedCards.length === totalCardsForDifficulty && matchedCards.length > 0) {
       setIsGameWon(true);
     }
-  }, [matchedCards]);
+  }, [matchedCards, config.pairs]);
+
+  // Marcar nível como completo quando o jogo é ganho
+  useEffect(() => {
+    if (isGameWon) {
+      const current = Number(gameId);
+      if (current) {
+        onWinMarkOnly(current);
+      }
+    }
+  }, [isGameWon, gameId, onWinMarkOnly]);
 
   // Lógica de virar carta
   const flipCard = (uniqueId) => {
@@ -116,13 +215,13 @@ export default function MemoryGame() {
           setFlippedCards([]);
           setScore((prev) => prev + 1);
           setIsChecking(false);
-        }, 1000);
+        }, config.matchTime);
       } else {
         // Não é par
         setTimeout(() => {
           setFlippedCards([]);
           setIsChecking(false);
-        }, 1500);
+        }, config.flipTime);
       }
     }
   };
@@ -141,29 +240,15 @@ export default function MemoryGame() {
   const renderCard = ({ item }) => {
     const isFlipped = flippedCards.includes(item.uniqueId);
     const isMatched = matchedCards.includes(item.uniqueId);
-    const showFront = isFlipped || isMatched;
 
     return (
-      <TouchableOpacity
-        style={[
-          styles.card,
-          !showFront ? { backgroundColor: "#fff7ed" } : { backgroundColor: item.color },
-          isMatched && styles.matchedCard,
-        ]}
-        onPress={() => flipCard(item.uniqueId)}
+      <AnimatedCard
+        item={item}
+        isFlipped={isFlipped}
+        isMatched={isMatched}
+        onFlip={() => flipCard(item.uniqueId)}
         disabled={isChecking || isMatched || isFlipped}
-      >
-        {showFront ? (
-          <Image
-            source={item.image}
-            style={{ height: "100%", width: "100%" }}
-            contentFit="contain"
-          />
-        ) : (
-          // <Text style={styles.cardText}>{item.name}</Text>
-          <Image source={cardcoverImg} style={styles.cardBack} />
-        )}
-      </TouchableOpacity>
+      />
     );
   };
 
@@ -195,23 +280,32 @@ export default function MemoryGame() {
             data={deck}
             renderItem={renderCard}
             keyExtractor={(item) => item.uniqueId}
-            numColumns={3}
+            numColumns={config.pairs <= 3 ? 3 : config.pairs <= 4 ? 4 : 3}
             contentContainerStyle={styles.grid}
             scrollEnabled={false}
           />
 
           <TouchableOpacity style={styles.newGameButton} onPress={newGame}>
-            <Text style={styles.newGameText}>🔄 NOVO JOGO</Text>
+            <Text style={styles.newGameText}>NOVO JOGO</Text>
           </TouchableOpacity>
 
-          <ProgressBar step={score} totalSteps={6} style={styles.progressBar} />
+          <ProgressBar
+            step={score}
+            totalSteps={config.pairs}
+            style={styles.progressBar}
+          />
         </View>
 
         {isGameWon && (
-          <View style={styles.winContainer}>
-            <ConfettiCannon count={100} origin={{ x: -10, y: 0 }} />
-            <Text style={styles.winText}>🎉 VOCÊ GANHOU! 🎉</Text>
-          </View>
+          <WinScreen
+            pathId={pathId}
+            gameId={gameId}
+            openMap={openMap}
+            openNext={openNext}
+            completeLevel={completeLevel}
+            message="Você ganhou!"
+            subtitle="Você combinou todos os pares e completou o jogo de memória!"
+          />
         )}
       </ImageBackground>
     </View>
@@ -246,16 +340,44 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  card: {
+  cardContainer: {
     width: 105,
     height: 105,
     margin: 8,
-    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 3,
-    boxShadow: "5px 5px 1px rgba(0, 0, 0, 0.2)",
+    position: "relative", // Importante para absolute positioning
+    borderRadius: 12,
+    // elevation: 3,
+  },
+  card: {
+    width: 105,
+    height: 105,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 12,
     padding: 10,
+    zIndex: 1,
+  },
+  cardImage: {
+    width: "100%",
+    height: "100%",
+  },
+  cardBack: {
+    width: scale(60),
+    height: 70,
+  },
+  // bloco opaco que vai se comportar como sombra
+  fakeShadow: {
+    position: "absolute",
+    top: 5, // distancia do topo
+    left: 5, // distancia da esquerda
+    width: 105,
+    height: 105,
+    borderRadius: 12,
+    backgroundColor: "#000000",
+    opacity: 0.25, // Ajuste para o efeito desejado
+    zIndex: -1,
   },
   matchedCard: {
     backgroundColor: "#27AE60",
@@ -265,10 +387,6 @@ const styles = StyleSheet.create({
     fontFamily: "TTMilksCasualPie",
     color: "#FFFFFF",
     textAlign: "center",
-  },
-  cardBack: {
-    width: 60,
-    height: 70,
   },
   newGameButton: {
     backgroundColor: "#E74C3C",
@@ -284,23 +402,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   progressBar: {
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  winContainer: {
-    position: "absolute",
-    top: "50%",
-    alignSelf: "center",
-    alignItems: "center",
-  },
-  winText: {
-    fontSize: 24,
-    fontFamily: "TTMilksCasualPie",
-    color: "#27AE60",
-    textAlign: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 15,
+    marginTop: verticalScale(20),
+    marginBottom: verticalScale(20),
   },
 });

@@ -1,25 +1,30 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  ImageBackground,
-  TouchableWithoutFeedback,
   BackHandler,
+  Image,
+  ImageBackground,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { scale, verticalScale, moderateScale } from "react-native-size-matters";
+import { moderateScale, scale, verticalScale } from "react-native-size-matters";
 
 // Importações para a lógica de jogo
-import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
-import { GAME_DIFFICULTY_CONFIG } from "@/constants/gameConfig"; // Importa nossa configuração
 import BackButton from "@/components/backbutton";
 import ProgressBar from "@/components/progressbar"; // Importe sua ProgressBar
-import ConfettiCannon from "react-native-confetti-cannon"; // Para a tela de sucesso
+import WinScreen from "@/components/WinScreen";
+import { GAME_DIFFICULTY_CONFIG } from "@/constants/gameConfig"; // Importa nossa configuração
 import { useLevelNavigation } from "@/hooks/useLevelNavigation";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 
 const TOTAL_ROUNDS = 5;
+
+// Cores padronizadas para as bolhas
+const BUBBLE_COLORS = {
+  CORRECT: "#27AE60", // Verde para resposta correta
+  INCORRECT: "#E74C3C", // Vermelho para respostas incorretas
+};
 
 export default function PlusGame() {
   const router = useRouter();
@@ -54,7 +59,7 @@ export default function PlusGame() {
     difficulty = "facil", // Pega o parâmetro de dificuldade da rota. Se nenhum for passado, ele assume 'facil' como padrão.
     gameType = "soma", // Pega o parâmetro de tipo de jogo da rota. Se nenhum for passado, ele assume 'soma' como padrão.
   } = useLocalSearchParams();
-  const { onWinMarkOnly, openNext, openMap } = useLevelNavigation(pathId);
+  const { onWinMarkOnly, openNext, openMap, completeLevel } = useLevelNavigation(pathId);
 
   // Pega as configurações para a dificuldade atual
   const config = GAME_DIFFICULTY_CONFIG[gameType][difficulty];
@@ -68,23 +73,41 @@ export default function PlusGame() {
   const [correctAnswersCount, setCorrectAnswersCount] = useState(0);
   const [isGameWon, setIsGameWon] = useState(false);
 
+  // Log para monitorar mudanças de estado
+  useEffect(() => {
+    console.log(`[PlusGame] isGameWon changed to: ${isGameWon}`);
+  }, [isGameWon]);
+
+  useEffect(() => {
+    console.log(`[PlusGame] correctAnswersCount changed to: ${correctAnswersCount}`);
+  }, [correctAnswersCount]);
+
   // Efeito para iniciar o jogo
   useEffect(() => {
     generateNewQuestion();
   }, []);
 
-  // Efeito para verificar se o jogo foi ganho e disparar os confetes com delayzinho de 100ms
+  // Efeito para verificar se o jogo foi ganho e marcar como completo
   useEffect(() => {
-    if (isGameWon && confettiRef.current) {
+    if (isGameWon) {
+      console.log(`[PlusGame] Game won! pathId=${pathId}, gameId=${gameId}`);
       // marca conclusão uma única vez
       const current = Number(gameId);
       if (!markedRef.current && current) {
+        console.log(`[PlusGame] Calling onWinMarkOnly with level: ${current}`);
         onWinMarkOnly(current);
         markedRef.current = true;
+      } else {
+        console.log(
+          `[PlusGame] Not calling onWinMarkOnly - markedRef.current=${markedRef.current}, current=${current}`
+        );
       }
-      setTimeout(() => confettiRef.current.start(), 100);
+      // Inicia confetti se disponível
+      if (confettiRef.current) {
+        setTimeout(() => confettiRef.current.start(), 100);
+      }
     }
-  }, [isGameWon]);
+  }, [isGameWon, gameId, onWinMarkOnly]);
 
   // Lógica para gerar uma nova questão
   const generateNewQuestion = () => {
@@ -107,12 +130,9 @@ export default function PlusGame() {
     }
 
     const shuffledOptions = options.sort(() => 0.5 - Math.random());
-    const colors = ["#f453b6", "#62bfec", "#cb6ce6"];
-    const shuffledColors = colors.sort(() => 0.5 - Math.random());
-
     const data = shuffledOptions.map((value, index) => ({
       value,
-      color: shuffledColors[index],
+      color: value === correct ? BUBBLE_COLORS.CORRECT : BUBBLE_COLORS.INCORRECT,
       offset: Math.floor(Math.random() * 41) - 20,
     }));
 
@@ -126,22 +146,31 @@ export default function PlusGame() {
     if (selectedAnswer !== null) return; // Impede múltiplos cliques
 
     const correct = num1 + num2;
+    console.log(
+      `[PlusGame] Answer pressed: value=${value}, correct=${correct}, match=${Number(value) === correct}`
+    );
     setSelectedAnswer(value); // Define a resposta selecionada para dar feedback visual
 
     if (Number(value) === correct) {
       // Se a resposta está CORRETA
       const newScore = correctAnswersCount + 1;
+      console.log(
+        `[PlusGame] Correct answer! newScore=${newScore}, TOTAL_ROUNDS=${TOTAL_ROUNDS}`
+      );
       setCorrectAnswersCount(newScore);
 
       setTimeout(() => {
         if (newScore >= TOTAL_ROUNDS) {
+          console.log(`[PlusGame] Game should be won! Setting isGameWon to true`);
           setIsGameWon(true); // Venceu o jogo!
         } else {
+          console.log(`[PlusGame] Generating next question`);
           generateNewQuestion(); // Próxima rodada
         }
       }, 1000); // Atraso de 1 segundo para o jogador ver o feedback
     } else {
       // Se a resposta está ERRADA, apenas mostra o feedback por um tempo e depois reseta
+      console.log(`[PlusGame] Wrong answer`);
       setTimeout(() => {
         setSelectedAnswer(null); // Limpa o feedback de "errado" para o jogador tentar de novo
       }, 1000);
@@ -165,40 +194,15 @@ export default function PlusGame() {
   // Renderiza a tela de sucesso se o jogo foi vencido
   if (isGameWon) {
     return (
-      <View style={successStyles.container}>
-        <ConfettiCannon
-          ref={confettiRef}
-          count={200}
-          origin={{ x: -10, y: 0 }}
-          autoStart={false}
-          fadeOut={true}
-        />
-        <Text style={successStyles.title}>Parabéns!</Text>
-        <TouchableWithoutFeedback onPress={() => confettiRef.current.start()}>
-          <Image
-            source={require("../assets/images/tuti_festa.png")}
-            style={successStyles.image}
-            resizeMode="contain"
-          />
-        </TouchableWithoutFeedback>
-
-        <TouchableOpacity style={successStyles.button} onPress={handleGameCompletion}>
-          <Text style={successStyles.buttonText}>Próximo Nível</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            successStyles.button,
-            { backgroundColor: "transparent", borderWidth: 2, borderColor: "#9d59ff" },
-          ]}
-          onPress={() => openMap()}
-        >
-          <Text
-            style={{ color: "#9d59ff", fontSize: moderateScale(18), fontWeight: "bold" }}
-          >
-            Voltar ao Caminho
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <WinScreen
+        pathId={pathId}
+        gameId={gameId}
+        openMap={openMap}
+        openNext={openNext}
+        completeLevel={completeLevel}
+        message="Parabéns!"
+        subtitle="Você dominou as somas!"
+      />
     );
   }
 
@@ -265,6 +269,15 @@ export default function PlusGame() {
                   source={require("../assets/images/bolha.png")}
                   style={styles.bubbleImageBackground}
                 >
+                  {/* Overlay para feedback visual */}
+                  {selectedAnswer !== null && isSelected && (
+                    <View
+                      style={[
+                        styles.feedbackOverlay,
+                        isCorrect ? styles.correctOverlay : styles.wrongOverlay,
+                      ]}
+                    />
+                  )}
                   <Text
                     style={[
                       styles.bubbleText,
@@ -402,6 +415,19 @@ const styles = StyleSheet.create({
   doubleDigit: {
     // Para números com 2 dígitos
     fontSize: moderateScale(45, 0.5),
+  },
+  feedbackOverlay: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    borderRadius: scale(50), // Círculo perfeito
+    zIndex: 1,
+  },
+  correctOverlay: {
+    backgroundColor: "rgba(22, 214, 22, 0.5)", // Verde semi-transparente
+  },
+  wrongOverlay: {
+    backgroundColor: "rgba(255, 93, 93, 0.5)", // Vermelho semi-transparente
   },
 });
 

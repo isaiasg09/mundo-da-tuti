@@ -60,10 +60,10 @@ export const PATHS = {
     },
     {
       id: 2,
-      name: "Jogo da Inicial Fácil",
-      route: "/initialgame",
+      name: "Jogo de Combinar Fácil",
+      route: "/matchgame",
       x: 70,
-      gameType: "inicial",
+      gameType: "match",
       difficulty: "facil",
     },
     {
@@ -76,10 +76,10 @@ export const PATHS = {
     },
     {
       id: 4,
-      name: "Jogo da Inicial Médio",
-      route: "/initialgame",
+      name: "Jogo de Combinar Médio",
+      route: "/matchgame",
       x: 70,
-      gameType: "inicial",
+      gameType: "match",
       difficulty: "medio",
     },
     {
@@ -92,10 +92,10 @@ export const PATHS = {
     },
     {
       id: 6,
-      name: "Jogo da Inicial Difícil",
-      route: "/initialgame",
+      name: "Jogo de Combinar Difícil",
+      route: "/matchgame",
       x: 70,
-      gameType: "inicial",
+      gameType: "match",
       difficulty: "dificil",
     },
   ],

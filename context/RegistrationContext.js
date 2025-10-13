@@ -19,6 +19,7 @@ const initialRegistrationData = {
   imagemPerfil: "", // Imagem de perfil do responsável
 };
 
+
 // 2. Cria o Contexto
 // Ele terá o estado dos dados e uma função para atualizá-los
 const RegistrationContext = createContext({

@@ -1,21 +1,20 @@
 // Importações de módulos e componentes necessários do React e React Native
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
+  ActivityIndicator,
+  Dimensions,
   StyleSheet,
-  Image, // Componente Image padrão do React Native (não usado diretamente neste arquivo, RNImage é usado)
+  Text, // Componente Image padrão do React Native (não usado diretamente neste arquivo, RNImage é usado)
   TouchableOpacity,
-  Dimensions, // API para obter as dimensões da tela
-  ActivityIndicator, // Componente para mostrar um indicador de carregamento
+  View,
 } from "react-native";
 // Importações para animações da biblioteca Reanimated
 import Animated, {
-  useSharedValue, // Hook para criar valores compartilhados que podem ser animados
-  useAnimatedStyle, // Hook para criar estilos que reagem a valores compartilhados
+  Easing, // Função para animar um valor ao longo do tempo com configurações específicas
+  interpolate, // Hook para criar valores compartilhados que podem ser animados
+  useAnimatedStyle,
+  useSharedValue, // Hook para criar estilos que reagem a valores compartilhados
   withTiming, // Função para animar um valor ao longo do tempo com configurações específicas
-  interpolate, // Função para mapear um valor de um intervalo para outro (usado em animações)
-  Easing, // Define as curvas de aceleração/desaceleração para animações
 } from "react-native-reanimated";
 // Importa o componente Image do React Native como RNImage para evitar conflito de nome, usado para resolver as dimensões da imagem
 import { Image as RNImage } from "react-native";

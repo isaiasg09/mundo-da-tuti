@@ -1,10 +1,9 @@
 // context/GameContext.js
-import React, { createContext, useState, useContext, useEffect, useRef } from "react";
-import { PATHS, PATH_ORDER } from "@/constants/paths";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "@mdt:progress:v1";
 
-const RESET_PROGRESS_ON_START = false;
+const DONT_RESET_PROGRESS_ON_START = true;
 
 const initialGameProgress = {
   paths: {
@@ -23,18 +22,14 @@ const initialGameProgress = {
     },
     // Próximo caminho principal
     molusco_perola: {
-      status: "locked", // Começa bloqueado
+      status: "unlocked", // Começa desbloqueado
       games: {
-        game1: { status: "unlocked" }, // O primeiro jogo deste caminho só será jogável quando o caminho for desbloqueado
+        game1: { status: "unlocked" }, // O primeiro jogo deste caminho começa desbloqueado
         game2: { status: "locked" },
         game3: { status: "locked" },
         game4: { status: "locked" },
         game5: { status: "locked" },
         game6: { status: "locked" },
-        game7: { status: "locked" },
-        game8: { status: "locked" },
-        game9: { status: "locked" },
-        game10: { status: "locked" },
       },
     },
   },
@@ -70,24 +65,45 @@ export const GameProvider = ({ children }) => {
   // Lazy-load AsyncStorage and hydrate saved progress
   useEffect(() => {
     (async () => {
-      if (RESET_PROGRESS_ON_START && asyncStorageRef.current) {
-        await asyncStorageRef.current.removeItem(STORAGE_KEY);
-        setGameProgressState(initialGameProgress);
-        return;
+      console.log("📱 Carregando progresso do AsyncStorage...");
+
+      // Debug: Verificar se deve resetar progresso
+      if (!DONT_RESET_PROGRESS_ON_START) {
+        console.log("🔄 DONT_RESET_PROGRESS_ON_START é false, resetando progresso");
       }
 
       try {
         const mod = await import("@react-native-async-storage/async-storage");
         asyncStorageRef.current = mod.default;
+
+        // Se não deve manter progresso, limpa o storage
+        if (!DONT_RESET_PROGRESS_ON_START) {
+          await asyncStorageRef.current.removeItem(STORAGE_KEY);
+          console.log("🗑️ Progresso resetado");
+          return;
+        }
+
         const raw = await asyncStorageRef.current.getItem(STORAGE_KEY);
+
         if (raw) {
+          console.log("💾 Progresso encontrado no AsyncStorage:", raw);
           const parsed = JSON.parse(raw);
           // Merge with initial to keep any new keys introduced by updates
-          setGameProgressState((prev) => deepMerge(prev, parsed));
+          setGameProgressState((prev) => {
+            const merged = deepMerge(prev, parsed);
+            console.log(
+              "🔄 Progresso carregado e mesclado:",
+              JSON.stringify(merged, null, 2)
+            );
+            return merged;
+          });
+        } else {
+          console.log("📝 Nenhum progresso salvo encontrado, usando inicial");
         }
       } catch (e) {
         console.warn(
-          "AsyncStorage indisponível (modo dev ou dependência não instalada). Progresso será mantido apenas em memória."
+          "AsyncStorage indisponível (modo dev ou dependência não instalada). Progresso será mantido apenas em memória.",
+          e
         );
       }
     })();
@@ -99,9 +115,11 @@ export const GameProvider = ({ children }) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       try {
+        console.log("💾 Salvando progresso no AsyncStorage...");
         await asyncStorageRef.current.setItem(STORAGE_KEY, JSON.stringify(gameProgress));
+        console.log("✅ Progresso salvo com sucesso");
       } catch (e) {
-        console.warn("Falha ao salvar progresso localmente:", e?.message);
+        console.warn("❌ Falha ao salvar progresso localmente:", e?.message);
       }
     }, 300);
     return () => saveTimer.current && clearTimeout(saveTimer.current);
@@ -144,6 +162,11 @@ export const GameProvider = ({ children }) => {
 
   const getGameKey = (index) => `game${index}`; // index 1-based
 
+  const getLevelIndex1Based = (gameKey) => {
+    // Extrai o número do gameKey (ex: "game3" -> 3)
+    return parseInt(gameKey.replace("game", ""), 10);
+  };
+
   const isLevelLocked = (pathId, levelIndex1Based) => {
     const gameKey = getGameKey(levelIndex1Based);
     return gameProgress.paths?.[pathId]?.games?.[gameKey]?.status === STATUS.LOCKED;
@@ -165,7 +188,9 @@ export const GameProvider = ({ children }) => {
   const unlockNextLevel = (pathId, currentLevelIndex1Based) => {
     const nextKey = getGameKey(currentLevelIndex1Based + 1);
     const games = gameProgress.paths?.[pathId]?.games;
+
     if (games && games[nextKey] && games[nextKey].status === STATUS.LOCKED) {
+      console.log(`🔓 Desbloqueando próximo nível: ${pathId}.${nextKey}`);
       updateGameStatus(pathId, nextKey, STATUS.UNLOCKED);
     }
   };
@@ -173,29 +198,24 @@ export const GameProvider = ({ children }) => {
   const markLevelCompleted = (pathId, levelIndex1Based) => {
     const key = getGameKey(levelIndex1Based);
     const current = gameProgress.paths?.[pathId]?.games?.[key];
-    if (!current) return;
-    if (current.status === STATUS.COMPLETED) return; // já concluído
+    if (!current || current.status === STATUS.COMPLETED) {
+      return; // já concluído ou não existe
+    }
 
+    console.log(`✅ Completando nível: ${pathId}.${key}`);
     updateGameStatus(pathId, key, STATUS.COMPLETED);
     unlockNextLevel(pathId, levelIndex1Based);
   };
 
-  const completeLevel = (pathId, levelIndex1Based) => {
-    // Marca o nível e desbloqueia o próximo
-    markLevelCompleted(pathId, levelIndex1Based);
+  const completeLevel = (pathId, gameKey) => {
+    const levelIndex = getLevelIndex1Based(gameKey);
+    console.log(`🎯 Completando jogo: ${pathId}.${gameKey}`);
 
-    // Se for o último nível desse caminho, marca o caminho como concluído e desbloqueia o próximo caminho
-    const totalLevels = PATHS[pathId]?.length || 0;
-    if (totalLevels && levelIndex1Based >= totalLevels) {
-      const currentIdx = PATH_ORDER.indexOf(pathId);
-      const nextPathId = currentIdx >= 0 ? PATH_ORDER[currentIdx + 1] : undefined;
+    // Marca o nível como completado
+    updateGameStatus(pathId, gameKey, STATUS.COMPLETED);
 
-      const update = { paths: { [pathId]: { status: STATUS.COMPLETED } } };
-      if (nextPathId) {
-        update.paths[nextPathId] = { status: STATUS.UNLOCKED };
-      }
-      handleSetGameProgress(update);
-    }
+    // Desbloqueia o próximo nível
+    unlockNextLevel(pathId, levelIndex);
   };
 
   return (
@@ -207,6 +227,8 @@ export const GameProvider = ({ children }) => {
         markLevelCompleted,
         unlockNextLevel,
         completeLevel,
+        getGameKey,
+        getLevelIndex1Based,
       }}
     >
       {children}

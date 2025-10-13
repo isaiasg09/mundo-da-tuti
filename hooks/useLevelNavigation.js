@@ -1,6 +1,6 @@
-import { useRouter } from "expo-router";
 import { PATHS, PATH_TO_SCREEN } from "@/constants/paths";
 import { useGameProgress } from "@/context/GameContext";
+import { useRouter } from "expo-router";
 
 export function useLevelNavigation(pathId) {
   const router = useRouter();
@@ -15,15 +15,22 @@ export function useLevelNavigation(pathId) {
   const levelCount = PATHS[pathId]?.length ?? 0;
 
   function openLevel(levelIndex1Based, options = { replace: false }) {
-    if (!pathId || !PATHS[pathId]) return { ok: false, reason: "invalid-path" };
+    if (!pathId || !PATHS[pathId]) {
+      return { ok: false, reason: "invalid-path" };
+    }
 
     const cfg = getLevelConfig(levelIndex1Based);
-    if (!cfg) return { ok: false, reason: "not-found" };
+    if (!cfg) {
+      return { ok: false, reason: "not-found" };
+    }
 
     const safeIsLevelLocked =
       typeof isLevelLocked === "function" ? isLevelLocked : () => false;
-    if (safeIsLevelLocked(pathId, levelIndex1Based))
+    const isLocked = safeIsLevelLocked(pathId, levelIndex1Based);
+
+    if (isLocked) {
       return { ok: false, reason: "locked" };
+    }
 
     const nav = {
       pathname: cfg.route,
@@ -49,7 +56,11 @@ export function useLevelNavigation(pathId) {
   // Conclui e tenta abrir o próximo; se não der, volta ao mapa
   function completeLevelAndMaybeOpenNext(levelIndex1Based) {
     if (!pathId || !PATHS[pathId]) return { ok: false, reason: "invalid-path" };
-    if (typeof completeLevel === "function") completeLevel(pathId, levelIndex1Based);
+    if (typeof completeLevel === "function") {
+      // Convert levelIndex1Based to gameKey format (e.g., 1 -> "game1")
+      const gameKey = `game${levelIndex1Based}`;
+      completeLevel(pathId, gameKey);
+    }
 
     const next = levelIndex1Based + 1;
     const res = openLevel(next);
@@ -64,8 +75,14 @@ export function useLevelNavigation(pathId) {
 
   // Utilitário para telas de vitória: marca conclusão imediatamente (inclui avanço de caminho no último nível), sem navegar
   function onWinMarkOnly(levelIndex1Based) {
-    if (!pathId || !PATHS[pathId]) return { ok: false, reason: "invalid-path" };
-    if (typeof completeLevel === "function") completeLevel(pathId, levelIndex1Based);
+    if (!pathId || !PATHS[pathId]) {
+      return { ok: false, reason: "invalid-path" };
+    }
+    if (typeof completeLevel === "function") {
+      // Convert levelIndex1Based to gameKey format (e.g., 1 -> "game1")
+      const gameKey = `game${levelIndex1Based}`;
+      completeLevel(pathId, gameKey);
+    }
     return { ok: true };
   }
 

@@ -9,10 +9,8 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
-import ConfettiCannon from "react-native-confetti-cannon";
 
 import { GAME_DIFFICULTY_CONFIG } from "../constants/gameConfig";
 import { useGameProgress } from "../context/GameContext";
@@ -20,30 +18,22 @@ import { useGameProgress } from "../context/GameContext";
 import BackButton from "@/components/backbutton";
 import Fish from "@/components/Fish";
 import ProgressBar from "@/components/progressbar";
+import WinScreen from "@/components/WinScreen";
 
 const { width: windowWidth } = Dimensions.get("window");
 
 import { useLevelNavigation } from "@/hooks/useLevelNavigation";
-import { verticalScale } from "react-native-size-matters";
+import { moderateScale, scale, verticalScale } from "react-native-size-matters";
 // Dados de CONFIGURAÇÃO dos jogos deste caminho.
 // Define as propriedades que não mudam: ID, nome, rota e posição X no mapa.
 
 // --- NOVOS HELPERS E CONSTANTES ---
 
-// Define um array de cores vibrantes para os números das bolhas
-const BUBBLE_NUMBER_COLORS = [
-  "#FF5733", // Laranja
-  "#00911b", // Verde
-  "#3357FF", // Azul
-  "#FF33A1", // Rosa
-  "#A133FF", // Roxo
-  "#ff3333", // vermelho
-];
-
-// Função para pegar uma cor aleatória do nosso array
-function getRandomColor() {
-  return BUBBLE_NUMBER_COLORS[Math.floor(Math.random() * BUBBLE_NUMBER_COLORS.length)];
-}
+// Define cores padronizadas para as bolhas (vermelho para incorreta, verde para correta)
+const BUBBLE_COLORS = {
+  CORRECT: "#27AE60", // Verde para resposta correta
+  INCORRECT: "#E74C3C", // Vermelho para respostas incorretas
+};
 
 // Função para gerar um deslocamento vertical aleatório para as bolhas
 function getRandomVerticalOffset() {
@@ -109,7 +99,7 @@ export default function FishGame() {
     difficulty = "facil", // Pega o parâmetro de dificuldade da rota. Se nenhum for passado, ele assume 'facil' como padrão.
     gameType = "fish", // Pega o parâmetro de tipo de jogo da rota. Se nenhum for passado, ele assume 'soma' como padrão.
   } = useLocalSearchParams();
-  const { onWinMarkOnly, openNext, openMap } = useLevelNavigation(pathId);
+  const { onWinMarkOnly, openNext, openMap, completeLevel } = useLevelNavigation(pathId);
 
   // Pega as configurações para a dificuldade atual
   const config = GAME_DIFFICULTY_CONFIG[gameType][difficulty];
@@ -118,28 +108,27 @@ export default function FishGame() {
     generateGame();
   }, []);
 
-  // useEffect para disparar os confetes na vitória
+  // useEffect para marcar como completo na vitória (desbloqueia próximos níveis)
   useEffect(() => {
     // Se o jogo foi ganho...
     if (isGameWon) {
-      // Marca conclusão imediatamente (uma vez)
+      console.log(`[FishGame] Game won! pathId=${pathId}, gameId=${gameId}`);
+      // Marca como completo imediatamente (desbloqueia próximos níveis)
       const current = Number(gameId);
       if (!markedRef.current && current) {
+        console.log(`[FishGame] Calling onWinMarkOnly with level: ${current}`);
         onWinMarkOnly(current);
         markedRef.current = true;
-      }
-      // Dispara confete
-      if (confettiRef.current) {
-        console.log("Disparando confetes de dentro do setTimeout...");
-        confettiRef.current.start();
       } else {
-        console.log("A ref do confete ainda é nula mesmo após o timeout.");
+        console.log(
+          `[FishGame] Not calling onWinMarkOnly - markedRef.current=${markedRef.current}, current=${current}`
+        );
       }
     }
-  }, [isGameWon]); // Dispara quando isGameWon muda para true
+  }, [isGameWon, gameId, onWinMarkOnly]); // Dispara quando isGameWon muda para true
 
   // O container dos peixes pode ser um pouco menor que a altura total para não sobrepor os botões
-  const containerHeight = Dimensions.get("window").height * 0.5;
+  const containerHeight = Dimensions.get("window").height * 0.4;
 
   const generateGame = () => {
     // --- LÓGICA DE GERAÇÃO DE PEIXES ATUALIZADA ---
@@ -215,10 +204,10 @@ export default function FishGame() {
     const array = Array.from(set).sort(() => Math.random() - 0.5);
 
     // --- MUDANÇA IMPORTANTE: Mapeia o array de números para um array de objetos ---
-    // Cada opção agora terá seu valor, cor e posição vertical aleatórios
+    // Cada opção agora terá seu valor, cor baseada na resposta correta, e posição vertical aleatória
     return array.map((value) => ({
       value: value,
-      color: getRandomColor(),
+      color: value === correct ? BUBBLE_COLORS.CORRECT : BUBBLE_COLORS.INCORRECT,
       verticalOffset: getRandomVerticalOffset(),
     }));
   };
@@ -278,44 +267,15 @@ export default function FishGame() {
   // Tela de Sucesso
   if (isGameWon) {
     return (
-      <View style={styles.successContainer}>
-        <Text style={styles.successTitle}>Você Conseguiu!</Text>
-
-        <TouchableWithoutFeedback onPress={fireConfetti}>
-          <Image
-            // Uma imagem da Tuti comemorando!
-            source={require("../assets/images/tuti_festa.png")}
-            style={styles.successImage}
-            resizeMode="contain"
-          />
-        </TouchableWithoutFeedback>
-        <Text style={styles.successMessage}>
-          Você contou todos os peixes e desbloqueou o próximo nível!
-        </Text>
-
-        {/* <TouchableOpacity style={styles.successButton} onPress={resetGame}>
-          <Text style={styles.successButtonText}>Jogar Novamente</Text>
-        </TouchableOpacity> */}
-
-        <TouchableOpacity style={styles.successButton} onPress={handleGameCompletion}>
-          <Text style={styles.successButtonText}>Próximo Nível</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.successButtonSecondary} onPress={() => openMap()}>
-          <Text style={styles.successButtonTextSecondary}>Voltar ao Caminho</Text>
-        </TouchableOpacity>
-
-        {/* Canhão de Confetes! */}
-        <ConfettiCannon
-          ref={confettiRef} // Referência para o canhão de confetes
-          count={200} // Quantidade de confetes
-          origin={{ x: windowWidth / 2, y: -20 }} // Ponto de origem da "explosão" (centro superior da tela)
-          autoStart={false} // Inicia automaticamente quando o componente monta
-          fadeOut={true} // Faz os confetes desaparecerem suavemente
-          explosionSpeed={350} // Velocidade inicial da explosão
-          fallSpeed={1000} // Velocidade da queda
-          // colors={['#ff69b4', '#1e90ff', '#32cd32', '#ffd700']} // Cores customizadas (opcional)
-        />
-      </View>
+      <WinScreen
+        pathId={pathId}
+        gameId={gameId}
+        openMap={openMap}
+        openNext={openNext}
+        completeLevel={completeLevel}
+        message="Você Conseguiu!"
+        subtitle="Você contou todos os peixes!"
+      />
     );
   }
 
@@ -355,32 +315,41 @@ export default function FishGame() {
           const isCorrect = option.value === correct;
 
           return (
-            // --- MUDANÇA NO JSX DAS BOLHAS ---
-            <ImageBackground
+            <TouchableOpacity
               key={index}
-              source={require("../assets/images/bolha.png")} // Imagem de fundo da bolha
-              resizeMode="contain" // 'contain' para não distorcer a imagem da bolha
-              style={[
-                styles.bubbleContainer, // Novo estilo para o container da bolha
-                { transform: [{ translateY: option.verticalOffset }] }, // Aplica o deslocamento vertical aleatório
-              ]}
+              onPress={() => handleAnswer(option.value)}
+              disabled={selected !== null} // Desabilita outras bolhas após uma resposta
             >
-              <TouchableOpacity
-                onPress={() => handleAnswer(option.value)}
+              <View
                 style={[
-                  styles.bubbleTouchable, // Novo estilo para o touchable
-                  selected !== null &&
-                    (isCorrect ? styles.correct : isSelected ? styles.wrong : null), // Estilos de certo/errado
+                  styles.bubbleWrapper,
+                  { transform: [{ translateY: option.verticalOffset }] },
                 ]}
-                activeOpacity={0.7}
-                disabled={selected !== null} // Desabilita o toque se já houver uma resposta selecionada
               >
-                <Text style={[styles.bubbleText, { color: option.color }]}>
-                  {/* Aplica a cor aleatória */}
-                  {option.value}
-                </Text>
-              </TouchableOpacity>
-            </ImageBackground>
+                {/* A sombra agora fica por baixo da bolha */}
+                <ImageBackground
+                  source={require("../assets/images/bolha.png")}
+                  style={styles.bubbleImageBackground}
+                >
+                  {/* Overlay para feedback visual */}
+                  {selected !== null && isSelected && (
+                    <View
+                      style={[
+                        styles.feedbackOverlay,
+                        isCorrect ? styles.correctOverlay : styles.wrongOverlay,
+                      ]}
+                    />
+                  )}
+                  <Text style={[styles.bubbleText, { color: option.color }]}>
+                    {option.value}
+                  </Text>
+                </ImageBackground>
+                <Image
+                  source={require("../assets/images/sombra.png")}
+                  style={styles.shadowImage}
+                />
+              </View>
+            </TouchableOpacity>
           );
         })}
       </View>
@@ -388,7 +357,7 @@ export default function FishGame() {
       <ProgressBar
         step={correctAnswersCount}
         totalSteps={ROUNDS_TO_WIN}
-        style={{ bottom: verticalScale(20) }}
+        style={{ marginBottom: verticalScale(20) }}
       />
     </View>
   );
@@ -420,57 +389,61 @@ const styles = StyleSheet.create({
     height: 35,
   },
   questionContainer: {
-    paddingHorizontal: 10,
+    paddingTop: 5,
     marginVertical: 15,
   },
   questionText: {
     textTransform: "uppercase",
     color: "#f453b6", // Rosa
     fontFamily: "TTMilksCasualPie",
-    fontSize: 35,
+    fontSize: 30,
     textAlign: "center",
   },
   optionsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    alignItems: "center", // Alinha verticalmente as bolhas (antes do offset)
+    alignItems: "flex-end", // Alinha as bolhas pela base
     width: "100%",
-    paddingHorizontal: 10,
-    // Posiciona na parte inferior da tela
-    // position: "absolute",
-    // bottom: 30,
+    paddingBottom: verticalScale(40), // Espaço na base
+    // paddingHorizontal: 10,
+    // marginBottom: "20%",
+    marginVertical: 20,
   },
   // --- NOVOS ESTILOS PARA AS BOLHAS ---
-  bubbleContainer: {
-    // Para o ImageBackground
-    width: windowWidth * 0.25, // Largura da bolha (25% da tela)
-    aspectRatio: 1, // Mantém a proporção quadrada para a imagem da bolha
-    justifyContent: "center",
+  bubbleWrapper: {
+    // Novo wrapper para cada bolha e sua sombra
     alignItems: "center",
-    marginBottom: "20%",
   },
-  bubbleTouchable: {
-    // Para o TouchableOpacity DENTRO do ImageBackground
-    width: "100%", // Ocupa toda a área do ImageBackground
-    height: "100%",
-    justifyContent: "center", // Centraliza o texto verticalmente
-    alignItems: "center", // Centraliza o texto horizontalmente
+  bubbleImageBackground: {
+    // Para a imagem da bolha
+    width: scale(100), // Tamanho da bolha escalável
+    height: scale(100),
+    justifyContent: "center", // Centraliza o texto perfeitamente
+    alignItems: "center",
+  },
+  shadowImage: {
+    width: scale(80),
+    height: verticalScale(25),
+    resizeMode: "contain",
+    opacity: 0.7, // Leve transparência para a sombra
   },
   bubbleText: {
-    fontSize: 40, // Tamanho grande para o número
+    fontSize: moderateScale(40, 0.5), // Tamanho escalável para o número
     fontFamily: "TTMilksCasualPie",
+    textAlign: "center",
   },
-  correct: {
-    // Para feedback visual. O ideal é mudar a cor da bolha, não do Touchable.
-    // Para mudar a cor da bolha (ImageBackground), você pode usar o 'tintColor'
-    // Ex: tintColor: '#8fff8f' na ImageBackground
-    // Por simplicidade, um overlay de cor no Touchable pode funcionar:
-    backgroundColor: "rgba(22, 214, 22, 0.699)", // Verde semi-transparente
-    borderRadius: 100, // Círculo
+  feedbackOverlay: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    borderRadius: scale(50), // Círculo perfeito
+    zIndex: 1,
   },
-  wrong: {
-    backgroundColor: "rgba(255, 93, 93, 0.61)", // Vermelho semi-transparente
-    borderRadius: 100, // Círculo
+  correctOverlay: {
+    backgroundColor: "rgba(22, 214, 22, 0.5)", // Verde semi-transparente
+  },
+  wrongOverlay: {
+    backgroundColor: "rgba(255, 93, 93, 0.5)", // Vermelho semi-transparente
   },
   successContainer: {
     flex: 1,

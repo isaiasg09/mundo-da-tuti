@@ -1,6 +1,6 @@
-import React from "react";
-import { View, Image, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
+import React from "react";
+import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
 
 export default function NavBar() {
   const personIcon = require("../assets/images/icons/person_icon.png");
@@ -12,18 +12,23 @@ export default function NavBar() {
 
   return (
     <View style={styles.topNav}>
-      <TouchableOpacity style={styles.navButton}>
+      {/* Botão de Perfil */}
+      <TouchableOpacity style={styles.navButton} onPress={() => router.push("/perfil")}>
         <Image source={personIcon} style={styles.navButtonIcon} resizeMode="cover" />
       </TouchableOpacity>
+      {/* Botão de Jogo */}
       <TouchableOpacity
         style={styles.navButton}
         // onPress={() => router.push("/home")}
       >
         <Image source={gameIcon} style={styles.navButtonIcon} resizeMode="contain" />
       </TouchableOpacity>
+      {/* BBotão de Configurações */}
       <TouchableOpacity style={styles.navButton} onPress={() => router.push("/settings")}>
         <Image source={cfgIcon} style={styles.navButtonIcon} resizeMode="cover" />
       </TouchableOpacity>
+
+      {/* Botão de Menu */}
       <TouchableOpacity
         style={styles.navButton}
         // onPress={() => router.push("/settings")}
