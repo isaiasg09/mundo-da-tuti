@@ -84,14 +84,30 @@ export const PATHS = {
     },
     {
       id: 5,
-      name: "Jogo da Memória Difícil",
+      name: "Jogo da Memória Complicado",
+      route: "/memorygame",
+      x: 175,
+      gameType: "memory",
+      difficulty: "complicado",
+    },
+    {
+      id: 6,
+      name: "Jogo de Combinar Complicado",
+      route: "/matchgame",
+      x: 70,
+      gameType: "match",
+      difficulty: "complicado",
+    },
+    {
+      id: 7,
+      name: "Jogo de Memória Difícil",
       route: "/memorygame",
       x: 175,
       gameType: "memory",
       difficulty: "dificil",
     },
     {
-      id: 6,
+      id: 8,
       name: "Jogo de Combinar Difícil",
       route: "/matchgame",
       x: 70,
@@ -99,15 +115,50 @@ export const PATHS = {
       difficulty: "dificil",
     },
   ],
+  anemona: [
+    {
+      id: 1,
+      name: "Jogo da Palavra Fácil",
+      route: "/wordgame",
+      x: 175,
+      gameType: "word",
+      difficulty: "facil",
+    },
+    {
+      id: 2,
+      name: "Jogo da Palavra Médio",
+      route: "/wordgame",
+      x: 70,
+      gameType: "word",
+      difficulty: "medio",
+    },
+    {
+      id: 3,
+      name: "Jogo da Palavra Complicado",
+      route: "/wordgame",
+      x: 210,
+      gameType: "word",
+      difficulty: "complicado",
+    },
+    {
+      id: 4,
+      name: "Jogo da Palavra Difícil",
+      route: "/wordgame",
+      x: 320,
+      gameType: "word",
+      difficulty: "dificil",
+    },
+  ],
 };
 
 // Ordem dos caminhos do jogo (para desbloqueio sequencial)
-export const PATH_ORDER = ["castelo", "molusco_perola"];
+export const PATH_ORDER = ["castelo", "molusco_perola", "anemona"];
 
 // Mapeamento de caminho para a tela correspondente (expo-router pathname)
 export const PATH_TO_SCREEN = {
   castelo: "/firstpath",
   molusco_perola: "/secondpath",
+  anemona: "/thirdpath",
 };
 
 export const PROFILE_IMAGE_OPTIONS = [

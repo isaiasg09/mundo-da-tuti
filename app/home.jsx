@@ -1,25 +1,23 @@
-import React, { useState, useCallback } from "react";
-import {
-  View,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-  ImageBackground,
-  Text,
-  BackHandler,
-} from "react-native";
 import NavBar from "@/components/navbar";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
+import {
+  BackHandler,
+  Dimensions,
+  Image,
+  ImageBackground,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 // Importações do Reanimated que você já tem
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  Easing,
-  // runOnJS não é mais necessário com esta abordagem mais simples
-} from "react-native-reanimated";
 import { useGameProgress } from "@/context/GameContext";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 const { width } = Dimensions.get("window");
 
@@ -27,7 +25,7 @@ const { width } = Dimensions.get("window");
 const paths = [
   require("../assets/images/castelo.png"),
   require("../assets/images/molusco_perola.png"),
-  // Adicione mais imagens aqui se desejar
+  require("../assets/images/anemona.png"),
 ];
 
 // --- DADOS DOS CAMINHOS ---
@@ -46,7 +44,12 @@ const gamePaths = [
     image: require("../assets/images/molusco_perola.png"),
     route: "/secondpath", // Exemplo de rota para o segundo caminho
   },
-  // Adicione seus outros caminhos aqui
+  {
+    id: "anemona",
+    name: "Caminho da Anêmona",
+    image: require("../assets/images/anemona.png"),
+    route: "/thirdpath", // Exemplo de rota para o terceiro caminho
+  },
 ];
 
 export default function Home() {

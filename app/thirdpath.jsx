@@ -1,0 +1,374 @@
+import BackButton from "@/components/backbutton";
+import LevelNode from "@/components/LevelNode";
+import SimpleNavBar from "@/components/simplenavbar";
+import { useGameProgress } from "@/context/GameContext";
+import { useRegistration } from "@/context/RegistrationContext";
+import { useLevelNavigation } from "@/hooks/useLevelNavigation";
+import { useLocalSearchParams } from "expo-router";
+import React, { useEffect, useRef } from "react";
+import {
+  Dimensions,
+  Image,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
+import Svg, { Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+
+export default function ThirdPath() {
+  // Parâmetros e contexto, se necessário
+  const { pathId } = useLocalSearchParams();
+  const { registrationData } = useRegistration();
+  const effectivePathId = pathId || "anemona";
+  const { openLevel } = useLevelNavigation(effectivePathId);
+  const { gameProgress } = useGameProgress();
+
+  // imagens do fundo animado - elementos marinhos para tema anêmona
+  const coral4 = require("../assets/images/coral4.png");
+  const sombraPeixe1 = require("../assets/images/sombra_peixe1.png");
+  const sombraPeixe2 = require("../assets/images/sombra_peixe2.png");
+  const algaPedra = require("../assets/images/alga_pedra.png");
+
+  // --- CONFIGURAÇÃO CENTRAL DOS ELEMENTOS DE FUNDO ---
+  const BG_ELEMENTS = [
+    {
+      key: "coral4_1",
+      source: coral4,
+      top: 0.08,
+      left: 0.08,
+      w: 90,
+      h: 90,
+      amp: 8,
+      rotate: true,
+      opacity: 0.35,
+      phase: 0,
+    },
+    {
+      key: "coral4_2",
+      source: coral4,
+      bottom: 0.25,
+      right: 0.1,
+      w: 75,
+      h: 75,
+      amp: 10,
+      rotate: true,
+      opacity: 0.3,
+      phase: Math.PI / 3,
+    },
+    {
+      key: "sombraPeixe1",
+      source: sombraPeixe1,
+      top: 0.2,
+      right: 0.15,
+      w: 80,
+      h: 80,
+      amp: 12,
+      rotate: false,
+      opacity: 0.4,
+      phase: Math.PI / 1.5,
+    },
+    {
+      key: "sombraPeixe2",
+      source: sombraPeixe2,
+      bottom: 0.4,
+      left: 0.12,
+      w: 70,
+      h: 70,
+      amp: 14,
+      rotate: false,
+      opacity: 0.35,
+      phase: Math.PI / 2.2,
+    },
+    {
+      key: "algaPedra1",
+      source: algaPedra,
+      top: 0.35,
+      left: 0.05,
+      w: 65,
+      h: 65,
+      amp: 16,
+      rotate: false,
+      opacity: 0.4,
+      phase: Math.PI / 4,
+    },
+    {
+      key: "algaPedra2",
+      source: algaPedra,
+      bottom: 0.15,
+      right: 0.05,
+      w: 60,
+      h: 60,
+      amp: 18,
+      rotate: false,
+      opacity: 0.38,
+      phase: Math.PI / 1.1,
+    },
+  ];
+
+  // Shared value global de progresso (0..1 em loop)
+  const globalT = useSharedValue(0);
+
+  // Gera estilos animados por elemento
+  const animatedElementStyles = BG_ELEMENTS.reduce((acc, el) => {
+    acc[el.key] = useAnimatedStyle(() => {
+      const angle = (globalT.value * 2 * Math.PI + el.phase) % (2 * Math.PI);
+      const translateY = Math.sin(angle) * el.amp;
+      const translateX = Math.cos(angle) * el.amp * 0.12; // leve drift horizontal
+      const rotateDeg = el.rotate ? Math.sin(angle) * 12 : 0;
+      const scale = 1 + Math.sin(angle) * 0.03;
+      return {
+        transform: [
+          { translateY },
+          { translateX },
+          el.rotate ? { rotate: `${rotateDeg}deg` } : { rotate: "0deg" },
+          { scale },
+        ],
+        opacity: el.opacity + Math.sin(angle) * 0.06,
+      };
+    });
+
+    return acc;
+  }, {});
+
+  // Posições lógicas das estrelas (baseado no paths.js - 4 níveis para o terceiro caminho)
+  const logicalStarPositions = [
+    { x: 200, y: 100 }, // Nível 1 (base)
+    { x: 300, y: 300 }, // Nível 2
+    { x: 120, y: 500 }, // Nível 3
+    { x: 250, y: 700 }, // Nível 4
+  ];
+
+  // Calcula a altura máxima lógica
+  const logicalMaxY = Math.max(...logicalStarPositions.map((p) => p.y));
+
+  // Altura real do container
+  const maxY = logicalMaxY + 100;
+
+  // Inverte o eixo Y: nível 1 fica embaixo (próximo à navbar)
+  const starPositions = logicalStarPositions.map((p) => ({
+    x: p.x,
+    y: maxY - p.y,
+  }));
+
+  const soundIcon = require("../assets/images/icons/sound_icon.png");
+  const estrelaAzul = require("../assets/images/estrela_azul.png");
+  const estrelaVermelha = require("../assets/images/estrela_vermelha.png");
+  const estrelaGlowImg = require("../assets/images/brilho.png");
+
+  // Função de geração de caminho usando vetor perpendicular para curvas centradas
+  const generatePath = (points, options = {}) => {
+    const { startDir = 1, baseAmp = 55, ampScale = 0.5, pivotInvertAfter } = options;
+    if (!points || points.length < 2) return "";
+    let d = `M${points[0].x},${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      const p0 = points[i - 1];
+      const p1 = points[i];
+      const dx = p1.x - p0.x;
+      const dy = p1.y - p0.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const perpX = -dy / dist;
+      const perpY = dx / dist;
+      let direction = (i % 2 === 1 ? 1 : -1) * startDir;
+      if (pivotInvertAfter && i >= pivotInvertAfter) direction *= -1;
+      const span = Math.abs(dy) + Math.abs(dx) * 0.4;
+      let amp = baseAmp + span * ampScale;
+      amp = Math.max(35, Math.min(amp, 100));
+      if (Math.abs(dx) < 50) amp += 12;
+      if (i === 1) amp *= 0.85;
+      const midX = (p0.x + p1.x) / 2 + perpX * amp * direction;
+      const midY = (p0.y + p1.y) / 2 + perpY * amp * direction;
+      d += ` Q${midX},${midY} ${p1.x},${p1.y}`;
+    }
+    return d;
+  };
+
+  // Ref para o ScrollView
+  const scrollRef = useRef(null);
+
+  // Ao montar, rola para o final (base do caminho onde estão as primeiras estrelas)
+  useEffect(() => {
+    if (scrollRef.current) {
+      setTimeout(() => {
+        scrollRef.current.scrollToEnd({ animated: false });
+      }, 100);
+    }
+
+    const animate = () => {
+      // Loop contínuo suave
+      globalT.value = withRepeat(
+        withTiming(1, { duration: 7000, easing: Easing.linear }),
+        -1,
+        false
+      );
+    };
+
+    animate();
+  }, []);
+
+  return (
+    <View style={styles.container}>
+      {/* Gradiente radial de fundo */}
+      <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Defs>
+          <RadialGradient id="bgGrad" cx="50%" cy="50%" r="70%">
+            <Stop offset="0%" stopColor="#ffa393" />
+            <Stop offset="100%" stopColor="#fbbfaa" />
+          </RadialGradient>
+        </Defs>
+        <Rect x={0} y={0} width="100%" height="100%" fill="url(#bgGrad)" />
+      </Svg>
+
+      {/* Topo fixo: voltar e som */}
+      <View style={styles.topButtonsContainer}>
+        <BackButton />
+        <TouchableOpacity
+          style={{
+            padding: 10,
+            backgroundColor: "rgba(255, 255, 255, 0.8)",
+            borderRadius: 9999999999,
+            flex: "0 0 auto",
+          }}
+        >
+          <Image
+            source={soundIcon}
+            style={{ width: 43, height: 35 }}
+            resizeMode="cover"
+          />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        ref={scrollRef}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ minHeight: maxY }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={{ height: maxY, width: "100%" }}>
+          {/* Elementos animados de fundo */}
+          <View style={styles.bgElementsLayer} pointerEvents="none">
+            {BG_ELEMENTS.map((el) => {
+              const stylePos = {
+                position: "absolute",
+                ...(el.top !== undefined ? { top: screenHeight * el.top } : {}),
+                ...(el.bottom !== undefined ? { bottom: screenHeight * el.bottom } : {}),
+                ...(el.left !== undefined ? { left: screenWidth * el.left } : {}),
+                ...(el.right !== undefined ? { right: screenWidth * el.right } : {}),
+                width: el.w,
+                height: el.h,
+              };
+              return (
+                <Animated.Image
+                  key={el.key}
+                  source={el.source}
+                  style={[stylePos, animatedElementStyles[el.key]]}
+                  resizeMode="contain"
+                />
+              );
+            })}
+          </View>
+
+          {/* Caminho vindo de baixo até o nível 1 */}
+          <Svg
+            height={maxY}
+            width="100%"
+            style={{ position: "absolute", top: 0, left: 0, zIndex: 0 }}
+          >
+            <Path
+              d={generatePath([starPositions[0], { x: starPositions[0].x, y: maxY }], {
+                startDir: 1,
+                baseAmp: 35,
+                ampScale: 0.3,
+              })}
+              stroke="#8B4513"
+              strokeWidth={5}
+              strokeDasharray="8 6"
+              fill="none"
+              strokeLinecap="round"
+            />
+          </Svg>
+
+          {/* Caminho SVG principal */}
+          <Svg
+            height={maxY}
+            width="100%"
+            style={{ position: "absolute", top: 0, left: 0, zIndex: 0 }}
+          >
+            <Path
+              d={generatePath(starPositions, {
+                startDir: 1,
+                baseAmp: 50,
+                ampScale: 0.4,
+                pivotInvertAfter: 2,
+              })}
+              stroke="#8B4513"
+              strokeWidth={5}
+              strokeDasharray="8 6"
+              fill="none"
+              strokeLinecap="round"
+            />
+          </Svg>
+
+          {/* Estrelas posicionadas */}
+          {starPositions.map((pos, idx) => {
+            const levelIndex = idx + 1;
+            const statusObj =
+              gameProgress.paths?.[effectivePathId]?.games?.[`game${levelIndex}`];
+            const state = statusObj?.status || "locked";
+
+            // Alternar entre estrela azul e vermelha
+            const isBlue = idx % 2 === 0;
+            const starImg = isBlue ? estrelaAzul : estrelaVermelha;
+
+            return (
+              <LevelNode
+                key={idx}
+                id={levelIndex}
+                x={pos.x}
+                y={pos.y}
+                state={state}
+                variant="star"
+                glowImg={estrelaGlowImg}
+                mainImg={starImg}
+                onPress={() => openLevel(levelIndex)}
+              />
+            );
+          })}
+        </View>
+      </ScrollView>
+
+      {/* Navbar fixa embaixo */}
+      <SimpleNavBar style={{ backgroundColor: "#feb4e7", zIndex: 3 }} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#a8e6cf", // fallback - cor verde água
+  },
+  topButtonsContainer: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    right: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    zIndex: 2,
+  },
+  bgElementsLayer: {
+    position: "absolute",
+    inset: 0,
+    zIndex: 0,
+  },
+});

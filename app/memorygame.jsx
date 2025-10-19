@@ -47,7 +47,7 @@ const cards = [
 
 const { width, height } = Dimensions.get("window");
 
-const AnimatedCard = ({ item, isFlipped, isMatched, onFlip, disabled }) => {
+const AnimatedCard = ({ item, isFlipped, isMatched, onFlip, disabled, cardSize }) => {
   const flipValue = useSharedValue(0);
 
   const [showFront, setShowFront] = useState(false);
@@ -95,17 +95,33 @@ const AnimatedCard = ({ item, isFlipped, isMatched, onFlip, disabled }) => {
   const cardColor = isMatched ? "#27AE60" : item.color;
 
   return (
-    <TouchableOpacity style={styles.cardContainer} onPress={onFlip} disabled={disabled}>
+    <TouchableOpacity
+      style={[styles.cardContainer, { width: cardSize, height: cardSize }]}
+      onPress={onFlip}
+      disabled={disabled}
+    >
       {/* Sombra falsa preenchida */}
-      <View style={styles.fakeShadow} />
+      <View style={[styles.fakeShadow, { width: cardSize, height: cardSize }]} />
 
       {/* Frente da carta (capa) */}
-      <Animated.View style={[styles.card, { backgroundColor: "#fff7ed" }, frontStyle]}>
+      <Animated.View
+        style={[
+          styles.card,
+          { backgroundColor: "#fff7ed", width: cardSize, height: cardSize },
+          frontStyle,
+        ]}
+      >
         <Image source={cardcoverImg} style={styles.cardBack} contentFit="contain" />
       </Animated.View>
 
       {/* Verso da carta (imagem) */}
-      <Animated.View style={[styles.card, { backgroundColor: cardColor }, backStyle]}>
+      <Animated.View
+        style={[
+          styles.card,
+          { backgroundColor: cardColor, width: cardSize, height: cardSize },
+          backStyle,
+        ]}
+      >
         <Image source={item.image} style={styles.cardImage} contentFit="contain" />
       </Animated.View>
     </TouchableOpacity>
@@ -125,6 +141,55 @@ export default function MemoryGame() {
   // Pega as configurações para a dificuldade atual nas constantes
   const config = GAME_DIFFICULTY_CONFIG[gameType][difficulty];
 
+  // console.log("MEMORY GAME DEBUG:", {
+  //   pathId,
+  //   gameId,
+  //   difficulty,
+  //   gameType,
+  //   config: config || "CONFIG NÃO ENCONTRADO",
+  // });
+
+  // Calcular número de colunas baseado na dificuldade e espaço disponível
+  const calculateColumns = () => {
+    const totalCards = config.pairs * 2;
+    const availableWidth = width - 40; // largura da tela - padding
+    const minCardSize = 80; // tamanho mínimo desejável para as cartas
+    const margin = 16; // margem total entre cartas
+
+    // Calcular quantas colunas cabem confortavelmente
+    const maxPossibleColumns = Math.floor(availableWidth / (minCardSize + margin));
+
+    // Lógica baseada na dificuldade para o melhor layout
+    let idealColumns;
+    if (totalCards <= 6) {
+      // Fácil: 6 cartas - 2 ou 3 colunas funcionam bem
+      idealColumns = Math.min(maxPossibleColumns, 3);
+    } else if (totalCards <= 8) {
+      // Médio: 8 cartas - 2 colunas geralmente fica melhor (4x2)
+      idealColumns = Math.min(maxPossibleColumns, 2);
+    } else {
+      // Difícil: 12 cartas - 3 colunas é ideal (4x3)
+      idealColumns = Math.min(maxPossibleColumns, 3);
+    }
+
+    console.log("Colunas calculadas:", idealColumns, "para", totalCards, "cartas");
+    return idealColumns;
+  };
+
+  const numColumns = calculateColumns();
+
+  // Calcular tamanho dinâmico das cartas
+  const calculateCardSize = () => {
+    const availableWidth = width - 40; // largura da tela - padding
+    const totalMargin = 16 * numColumns; // margem total (8px de cada lado * 2 * numColumns)
+    const cardWidth = Math.floor((availableWidth - totalMargin) / numColumns);
+
+    // Garantir que não fique muito pequeno nem muito grande
+    return Math.max(70, Math.min(cardWidth, 120));
+  };
+
+  const dynamicCardSize = calculateCardSize();
+
   // Estados do jogo:
   const [deck, setDeck] = useState([]); // Array embaralhado das cartas
   const [flippedCards, setFlippedCards] = useState([]); // uniqueIds das cartas viradas
@@ -132,6 +197,7 @@ export default function MemoryGame() {
   const [score, setScore] = useState(0); // Número de pares encontrados
   const [isGameWon, setIsGameWon] = useState(false); // Indica se o jogo foi ganho
   const [isChecking, setIsChecking] = useState(false); // Previne múltiplas interações
+  const [levelCompleted, setLevelCompleted] = useState(false); // Previne múltiplas conclusões
 
   // Interceptar botão físico de voltar
   useFocusEffect(
@@ -181,13 +247,14 @@ export default function MemoryGame() {
 
   // Marcar nível como completo quando o jogo é ganho
   useEffect(() => {
-    if (isGameWon) {
+    if (isGameWon && !levelCompleted) {
       const current = Number(gameId);
       if (current) {
+        setLevelCompleted(true); // Marca como completado para evitar múltiplas chamadas
         onWinMarkOnly(current);
       }
     }
-  }, [isGameWon, gameId, onWinMarkOnly]);
+  }, [isGameWon, gameId, onWinMarkOnly, levelCompleted]);
 
   // Lógica de virar carta
   const flipCard = (uniqueId) => {
@@ -234,6 +301,7 @@ export default function MemoryGame() {
     setScore(0);
     setIsGameWon(false);
     setIsChecking(false);
+    setLevelCompleted(false); // Reset do estado de conclusão
   };
 
   // Renderizar carta
@@ -248,6 +316,7 @@ export default function MemoryGame() {
         isMatched={isMatched}
         onFlip={() => flipCard(item.uniqueId)}
         disabled={isChecking || isMatched || isFlipped}
+        cardSize={dynamicCardSize}
       />
     );
   };
@@ -272,28 +341,34 @@ export default function MemoryGame() {
         <GameHeader onBackPress={handleBackPress} />
 
         <View style={styles.gameArea}>
-          {/* <Text style={styles.title}>JOGO DA MEMÓRIA</Text> */}
+          <Text style={styles.scoreText}>
+            acertos: {score}/{config.pairs}
+          </Text>
 
-          <Text style={styles.scoreText}>acertos: {score}/6</Text>
+          <View style={styles.gameContainer}>
+            <FlatList
+              key={`${difficulty}-${numColumns}`} // Força re-render quando muda dificuldade/colunas
+              data={deck}
+              renderItem={renderCard}
+              keyExtractor={(item) => item.uniqueId}
+              numColumns={numColumns}
+              contentContainerStyle={styles.grid}
+              scrollEnabled={true}
+              showsVerticalScrollIndicator={false}
+            />
+          </View>
 
-          <FlatList
-            data={deck}
-            renderItem={renderCard}
-            keyExtractor={(item) => item.uniqueId}
-            numColumns={config.pairs <= 3 ? 3 : config.pairs <= 4 ? 4 : 3}
-            contentContainerStyle={styles.grid}
-            scrollEnabled={false}
-          />
+          <View style={styles.bottomContainer}>
+            <TouchableOpacity style={styles.newGameButton} onPress={newGame}>
+              <Text style={styles.newGameText}>NOVO JOGO</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={styles.newGameButton} onPress={newGame}>
-            <Text style={styles.newGameText}>NOVO JOGO</Text>
-          </TouchableOpacity>
-
-          <ProgressBar
-            step={score}
-            totalSteps={config.pairs}
-            style={styles.progressBar}
-          />
+            <ProgressBar
+              step={score}
+              totalSteps={config.pairs}
+              style={styles.progressBar}
+            />
+          </View>
         </View>
 
         {isGameWon && (
@@ -324,35 +399,42 @@ const styles = StyleSheet.create({
   },
   gameArea: {
     flex: 1,
-    paddingHorizontal: 10,
+    paddingHorizontal: 20,
     flexDirection: "column",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
+    paddingTop: 10,
   },
   scoreText: {
     fontSize: 30,
     fontFamily: "TTMilksCasualPie",
     color: "#fef294",
-    marginBottom: 20,
+    marginBottom: 15,
   },
   grid: {
-    flex: 1, // Adicionar flex
     alignItems: "center",
     justifyContent: "center",
+    paddingBottom: 20,
+  },
+  gameContainer: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  bottomContainer: {
+    width: "100%",
+    alignItems: "center",
+    paddingBottom: verticalScale(20),
   },
   cardContainer: {
-    width: 105,
-    height: 105,
     margin: 8,
     justifyContent: "center",
     alignItems: "center",
     position: "relative", // Importante para absolute positioning
     borderRadius: 12,
-    // elevation: 3,
   },
   card: {
-    width: 105,
-    height: 105,
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 12,
@@ -372,8 +454,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 5, // distancia do topo
     left: 5, // distancia da esquerda
-    width: 105,
-    height: 105,
     borderRadius: 12,
     backgroundColor: "#000000",
     opacity: 0.25, // Ajuste para o efeito desejado

@@ -43,6 +43,11 @@ export const GAME_DIFFICULTY_CONFIG = {
       flipTime: 800,
       matchTime: 600,
     },
+    complicado: {
+      pairs: 5, // 5 pares = 10 cartas
+      flipTime: 700,
+      matchTime: 500,
+    },
     dificil: {
       pairs: 6, // 6 pares = 12 cartas
       flipTime: 600,
@@ -52,6 +57,25 @@ export const GAME_DIFFICULTY_CONFIG = {
   match: {
     facil: {
       pairs: 2,
+      resetTime: 1000, // Tempo para resetar seleções incorretas (ms)
     },
+    medio: {
+      pairs: 3,
+      resetTime: 800,
+    },
+    complicado: {
+      pairs: 4,
+      resetTime: 600,
+    },
+    dificil: {
+      pairs: 5,
+      resetTime: 600,
+    },
+  },
+  word: {
+    facil: { wordLength: 2 }, // Palavras de 2 letras
+    medio: { wordLength: 3 }, // Palavras de 3 letras
+    complicado: { wordLength: 4 }, // Palavras de 4 letras
+    dificil: { wordLength: 5 }, // Palavras de 5 letras
   },
 };
