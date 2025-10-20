@@ -68,7 +68,7 @@ export default function ThirdPath() {
     {
       key: "sombraPeixe1",
       source: sombraPeixe1,
-      top: 0.2,
+      top: 0.15,
       right: 0.15,
       w: 80,
       h: 80,
@@ -80,7 +80,7 @@ export default function ThirdPath() {
     {
       key: "sombraPeixe2",
       source: sombraPeixe2,
-      bottom: 0.4,
+      bottom: 0.2,
       left: 0.12,
       w: 70,
       h: 70,
@@ -96,10 +96,11 @@ export default function ThirdPath() {
       left: 0.05,
       w: 65,
       h: 65,
-      amp: 16,
+      amp: 0, // Sem movimento
       rotate: false,
-      opacity: 0.4,
-      phase: Math.PI / 4,
+      opacity: 0.6,
+      phase: 0,
+      static: true, // Marcador para elemento estático
     },
     {
       key: "algaPedra2",
@@ -108,19 +109,47 @@ export default function ThirdPath() {
       right: 0.05,
       w: 60,
       h: 60,
-      amp: 18,
+      amp: 0, // Sem movimento
       rotate: false,
-      opacity: 0.38,
-      phase: Math.PI / 1.1,
+      opacity: 0.65,
+      phase: 0,
+      static: true, // Marcador para elemento estático
+    },
+    // Algas pedras adicionais ao longo do caminho
+    {
+      key: "algaPedra4",
+      source: algaPedra,
+      bottom: 0.6,
+      right: 0.25,
+      w: 70,
+      h: 70,
+      amp: 0,
+      rotate: false,
+      opacity: 0.6,
+      phase: 0,
+      static: true,
     },
   ];
 
-  // Shared value global de progresso (0..1 em loop)
+  // Shared value global de progresso (0..1 em loop) - atualizado para 7 elementos
   const globalT = useSharedValue(0);
 
   // Gera estilos animados por elemento
   const animatedElementStyles = BG_ELEMENTS.reduce((acc, el) => {
     acc[el.key] = useAnimatedStyle(() => {
+      // Se o elemento é estático, não aplica animação
+      if (el.static) {
+        return {
+          transform: [
+            { translateY: 0 },
+            { translateX: 0 },
+            { rotate: "0deg" },
+            { scale: 1 },
+          ],
+          opacity: el.opacity,
+        };
+      }
+
       const angle = (globalT.value * 2 * Math.PI + el.phase) % (2 * Math.PI);
       const translateY = Math.sin(angle) * el.amp;
       const translateX = Math.cos(angle) * el.amp * 0.12; // leve drift horizontal

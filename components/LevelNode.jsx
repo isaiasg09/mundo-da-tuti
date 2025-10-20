@@ -1,15 +1,15 @@
 import React, { useEffect } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
   Image,
   ImageBackground,
   StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Animated, {
-  useSharedValue,
   useAnimatedStyle,
+  useSharedValue,
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
@@ -55,9 +55,10 @@ export default function LevelNode({
   const completed = state === "completed";
 
   // Dimensionamento por variante
-  const size = variant === "shell" ? 85 : 60;
-  const glowSize = variant === "shell" ? 225 : 200;
-  const glowOffset = variant === "shell" ? -60 : -70;
+  const size = variant === "shell" ? 85 : variant === "star" ? 70 : 60;
+  // make an if clause for variante star
+  const glowSize = variant === "shell" ? 225 : variant === "star" ? 150 : 200;
+  const glowOffset = variant === "shell" ? -60 : variant === "star" ? -40 : -70;
 
   const shellImage =
     variant === "shell" && images.length > 0 ? images[(id - 1) % images.length] : null;
@@ -117,7 +118,13 @@ export default function LevelNode({
             locked && variant === "pearl" && { opacity: 0.5 },
           ]}
         >
-          <Text style={[variant === "shell" ? styles.shellLabel : styles.pearlLabel]}>
+          <Text
+            style={[
+              variant === "shell" || variant === "star"
+                ? styles.shellLabel
+                : styles.pearlLabel,
+            ]}
+          >
             {id}
           </Text>
           {locked && <Text style={styles.lockSymbol}>🔒</Text>}

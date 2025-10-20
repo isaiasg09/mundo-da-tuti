@@ -38,7 +38,13 @@ const MATCH_ITEMS = [
     id: 4,
     image: require("../assets/images/combinacao/peixe.png"),
     letter: "P",
-    name: "peixe", // temporário
+    name: "peixe",
+  },
+  {
+    id: 5,
+    image: require("../assets/images/combinacao/treasure.png"),
+    letter: "B",
+    name: "bau",
   },
 ];
 
@@ -135,12 +141,18 @@ export default function MatchGame() {
     const isSelected = selectedImage === item.id;
     const isMatched = correctMatches.includes(item.id);
 
+    // Ajustar tamanho baseado no número de items (5 items = tamanho menor)
+    const cardWidth = config.pairs === 5 ? scale(85) : scale(100);
+    const cardHeight = config.pairs === 5 ? verticalScale(75) : verticalScale(90);
+    const imageWidth = config.pairs === 5 ? scale(65) : scale(80);
+    const imageHeight = config.pairs === 5 ? verticalScale(58) : verticalScale(70);
+
     return (
       <TouchableOpacity
         key={item.id}
         onPress={() => handleImagePress(item)}
         style={{
-          marginVertical: verticalScale(8),
+          marginVertical: config.pairs === 5 ? verticalScale(6) : verticalScale(8),
         }}
       >
         <View
@@ -151,15 +163,15 @@ export default function MatchGame() {
             borderRadius: scale(12),
             borderWidth: isSelected ? 3 : 0,
             borderColor: "#FFA500",
-            width: scale(100),
-            height: verticalScale(90),
+            width: cardWidth,
+            height: cardHeight,
           }}
         >
           <Image
             source={item.image}
             style={{
-              width: scale(80),
-              height: verticalScale(70),
+              width: imageWidth,
+              height: imageHeight,
             }}
             contentFit="contain"
           />
@@ -172,12 +184,17 @@ export default function MatchGame() {
     const isSelected = selectedLetter === item.id;
     const isMatched = correctMatches.includes(item.id);
 
+    // Ajustar tamanho baseado no número de items (5 items = tamanho menor)
+    const cardWidth = config.pairs === 5 ? scale(85) : scale(100);
+    const cardHeight = config.pairs === 5 ? verticalScale(75) : verticalScale(90);
+    const fontSize = config.pairs === 5 ? moderateScale(52) : moderateScale(64);
+
     return (
       <TouchableOpacity
         key={item.id}
         onPress={() => handleLetterPress(item)}
         style={{
-          marginVertical: verticalScale(8),
+          marginVertical: config.pairs === 5 ? verticalScale(6) : verticalScale(8),
         }}
       >
         <View
@@ -188,13 +205,13 @@ export default function MatchGame() {
             borderColor: "#cb6ce6",
             borderWidth: scale(4),
             borderRadius: scale(12),
-            width: scale(100),
-            height: verticalScale(90),
+            width: cardWidth,
+            height: cardHeight,
           }}
         >
           <Text
             style={{
-              fontSize: moderateScale(64),
+              fontSize: fontSize,
               fontFamily: "TTMilksCasualPie",
               color: "#f453b6",
             }}

@@ -43,7 +43,7 @@ export default function RootLayout() {
             statusBarHidden: true,
           }}
         >
-          <Stack.Screen name="thirdpath" />
+          <Stack.Screen name="home" />
         </Stack>
       </RegistrationProvider>
     </GameProvider>

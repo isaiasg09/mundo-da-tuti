@@ -1,5 +1,6 @@
 // context/GameContext.js
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import { PATH_ORDER } from "../constants/paths";
 
 const STORAGE_KEY = "@mdt:progress:v1";
 
@@ -22,7 +23,7 @@ const initialGameProgress = {
     },
     // Próximo caminho principal
     molusco_perola: {
-      status: "unlocked", // Começa desbloqueado
+      status: "locked", // Começa bloqueado
       games: {
         game1: { status: "unlocked" }, // O primeiro jogo deste caminho começa desbloqueado
         game2: { status: "locked" },
@@ -30,6 +31,17 @@ const initialGameProgress = {
         game4: { status: "locked" },
         game5: { status: "locked" },
         game6: { status: "locked" },
+        game7: { status: "locked" },
+        game8: { status: "locked" },
+      },
+    },
+    anemona: {
+      status: "locked", // Começa bloqueado
+      games: {
+        game1: { status: "unlocked" },
+        game2: { status: "locked" },
+        game3: { status: "locked" },
+        game4: { status: "locked" },
       },
     },
   },
@@ -192,6 +204,42 @@ export const GameProvider = ({ children }) => {
     if (games && games[nextKey] && games[nextKey].status === STATUS.LOCKED) {
       console.log(`🔓 Desbloqueando próximo nível: ${pathId}.${nextKey}`);
       updateGameStatus(pathId, nextKey, STATUS.UNLOCKED);
+    } else {
+      // Se não há próximo nível neste caminho, verificar se deve desbloquear próximo caminho
+      checkAndUnlockNextPath(pathId, currentLevelIndex1Based);
+    }
+  };
+
+  // Verifica se deve desbloquear o próximo caminho após completar o último jogo do caminho atual
+  const checkAndUnlockNextPath = (pathId, currentLevelIndex1Based) => {
+    // Definir quantos jogos cada caminho tem
+    const pathGameCounts = {
+      castelo: 6,
+      molusco_perola: 8,
+      anemona: 4,
+    };
+
+    // Usar a ordem dos caminhos importada
+    const pathOrder = PATH_ORDER;
+
+    const currentPathIndex = pathOrder.indexOf(pathId);
+    const isLastGameOfPath = currentLevelIndex1Based === pathGameCounts[pathId];
+
+    // Se é o último jogo do caminho atual E há um próximo caminho
+    if (isLastGameOfPath && currentPathIndex < pathOrder.length - 1) {
+      const nextPathId = pathOrder[currentPathIndex + 1];
+      const nextPathStatus = gameProgress.paths?.[nextPathId]?.status;
+
+      if (nextPathStatus === STATUS.LOCKED) {
+        console.log(`🎉 Desbloqueando próximo caminho: ${nextPathId}`);
+        handleSetGameProgress({
+          paths: {
+            [nextPathId]: {
+              status: STATUS.UNLOCKED,
+            },
+          },
+        });
+      }
     }
   };
 

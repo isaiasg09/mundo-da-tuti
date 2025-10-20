@@ -272,8 +272,8 @@ const styles = StyleSheet.create({
     zIndex: 5, // Garante que fique por cima das imagens do carrossel
   },
   lockIcon: {
-    width: 60,
-    height: 60,
+    width: 40,
+    height: 50,
     tintColor: "#fff", // Deixa a imagem do cadeado branca (funciona melhor com ícones de cor única)
     marginBottom: 10,
   },
