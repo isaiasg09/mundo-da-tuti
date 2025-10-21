@@ -1,6 +1,3 @@
-import BackButton from "@/components/backbutton";
-import PinkButton from "@/components/pinkbutton";
-import { resetGameProgress } from "@/utils/resetProgress";
 import { useEffect, useRef, useState } from "react";
 import {
   ImageBackground,
@@ -11,6 +8,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import BackButton from "../components/backbutton";
+import PinkButton from "../components/pinkbutton";
+import { resetGameProgress } from "../utils/resetProgress";
 
 export default function Priv_Cod() {
   const [code, setCode] = useState("");

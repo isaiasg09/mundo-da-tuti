@@ -1,12 +1,12 @@
-import GameHeader from "@/components/gameheader";
-import WinScreen from "@/components/winscreen";
-import { GAME_DIFFICULTY_CONFIG } from "@/constants/gameConfig";
-import { useLevelNavigation } from "@/hooks/useLevelNavigation";
 import { Image } from "expo-image";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Dimensions, ImageBackground, Text, TouchableOpacity, View } from "react-native";
 import { moderateScale, scale, verticalScale } from "react-native-size-matters";
+import GameHeader from "../components/gameheader";
+import WinScreen from "../components/winscreen";
+import { GAME_DIFFICULTY_CONFIG } from "../constants/gameConfig";
+import { useLevelNavigation } from "../hooks/useLevelNavigation";
 
 const backgroundImg = require("../assets/images/bg_1.png");
 const { width, height } = Dimensions.get("window");

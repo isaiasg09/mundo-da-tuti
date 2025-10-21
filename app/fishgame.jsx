@@ -15,15 +15,15 @@ import {
 import { GAME_DIFFICULTY_CONFIG } from "../constants/gameConfig";
 import { useGameProgress } from "../context/GameContext";
 
-import BackButton from "@/components/backbutton";
-import Fish from "@/components/fish";
-import ProgressBar from "@/components/progressbar";
-import WinScreen from "@/components/winscreen";
+import BackButton from "../components/backbutton";
+import Fish from "../components/fish";
+import ProgressBar from "../components/progressbar";
+import WinScreen from "../components/winscreen";
 
 const { width: windowWidth } = Dimensions.get("window");
 
-import { useLevelNavigation } from "@/hooks/useLevelNavigation";
 import { moderateScale, scale, verticalScale } from "react-native-size-matters";
+import { useLevelNavigation } from "../hooks/useLevelNavigation";
 // Dados de CONFIGURAÇÃO dos jogos deste caminho.
 // Define as propriedades que não mudam: ID, nome, rota e posição X no mapa.
 

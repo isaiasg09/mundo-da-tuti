@@ -1,7 +1,7 @@
-import BackButton from "@/components/backbutton";
 import { router } from "expo-router";
 import { ImageBackground, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import BackButton from "../components/backbutton";
 import MySwitchComponent from "../components/switch";
 
 export default function Preferencias() {

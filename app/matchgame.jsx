@@ -1,14 +1,14 @@
-import GameHeader from "@/components/gameheader";
-import { GAME_DIFFICULTY_CONFIG } from "@/constants/gameConfig";
-import { useLevelNavigation } from "@/hooks/useLevelNavigation";
 import { Image, ImageBackground } from "expo-image";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Dimensions, Text, TouchableOpacity, View } from "react-native";
 import { moderateScale, scale, verticalScale } from "react-native-size-matters";
+import GameHeader from "../components/gameheader";
 import WinScreen from "../components/winscreen";
+import { GAME_DIFFICULTY_CONFIG } from "../constants/gameConfig";
+import { useLevelNavigation } from "../hooks/useLevelNavigation";
 
-import ProgressBar from "@/components/progressbar";
+import ProgressBar from "../components/progressbar";
 
 const backgroundImg = require("../assets/images/bg_second_tall.png");
 const { width, height } = Dimensions.get("window");

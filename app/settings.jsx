@@ -9,11 +9,10 @@ import {
   View,
 } from "react-native";
 
-import BackButton from "@/components/backbutton";
-import PinkButton from "@/components/pinkbutton";
 import { router } from "expo-router";
 import React from "react";
-import { resetGameProgress } from "../utils/resetProgress";
+import BackButton from "../components/backbutton";
+import PinkButton from "../components/pinkbutton";
 // import { Button } from "../components/button/buttons";
 // import { Input } from "../components/input/input";
 
@@ -92,8 +91,6 @@ export default function Settings() {
           <Text style={styles.subTitle}>Quem Somos?</Text>
 
           <Text style={styles.text}>Termos e políticas de uso</Text>
-
-          
 
           <PinkButton
             title="SAIR"

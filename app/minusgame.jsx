@@ -12,11 +12,11 @@ import {
 import { moderateScale, scale, verticalScale } from "react-native-size-matters";
 
 // Importações para a lógica de jogo
-import BackButton from "@/components/backbutton";
-import ProgressBar from "@/components/progressbar"; // Importe sua ProgressBar
-import WinScreen from "@/components/winscreen";
-import { GAME_DIFFICULTY_CONFIG } from "@/constants/gameConfig"; // Importa nossa configuração
-import { useLevelNavigation } from "@/hooks/useLevelNavigation";
+import BackButton from "../components/backbutton";
+import ProgressBar from "../components/progressbar"; // Importe sua ProgressBar
+import WinScreen from "../components/winscreen";
+import { GAME_DIFFICULTY_CONFIG } from "../constants/gameConfig"; // Importa nossa configuração
+import { useLevelNavigation } from "../hooks/useLevelNavigation";
 
 // da pra mudar isso aqui pro gameconfig pra aumentar a dificuldade
 const TOTAL_ROUNDS = 5;

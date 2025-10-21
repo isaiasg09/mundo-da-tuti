@@ -2,7 +2,7 @@ import { Slider } from "@miblanchard/react-native-slider";
 import React, { useState } from "react";
 import { ImageBackground, SafeAreaView, StyleSheet, Text, View } from "react-native";
 
-import BackButton from "@/components/backbutton";
+import BackButton from "../components/backbutton";
 
 export default function Sons() {
   const [musicVolume, setMusicVolume] = useState(0.5);

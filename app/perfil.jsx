@@ -1,9 +1,9 @@
 import React from "react";
 import { Image, Text, View } from "react-native";
 
-import BackButton from "@/components/backbutton";
-import Conquista from "@/components/conquista";
-import ProgressBar from "@/components/progressbar";
+import BackButton from "../components/backbutton";
+import Conquista from "../components/conquista";
+import ProgressBar from "../components/progressbar";
 
 export default function Perfil() {
   return (

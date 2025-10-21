@@ -21,10 +21,10 @@ import { scale, verticalScale } from "react-native-size-matters";
 import { GAME_DIFFICULTY_CONFIG } from "../constants/gameConfig";
 import { useLevelNavigation } from "../hooks/useLevelNavigation";
 
-import GameHeader from "@/components/gameheader";
-import ProgressBar from "@/components/progressbar";
-import WinScreen from "@/components/winscreen";
 import { Image, ImageBackground } from "expo-image";
+import GameHeader from "../components/gameheader";
+import ProgressBar from "../components/progressbar";
+import WinScreen from "../components/winscreen";
 
 // Assets
 const peixeImg = require("../assets/images/cards/peixe.webp");

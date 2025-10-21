@@ -1,4 +1,3 @@
-import NavBar from "@/components/navbar";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -11,13 +10,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import NavBar from "../components/navbar";
 // Importações do Reanimated que você já tem
-import { useGameProgress } from "@/context/GameContext";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { useGameProgress } from "../context/GameContext";
 
 const { width } = Dimensions.get("window");
 

@@ -1,10 +1,3 @@
-import BackButton from "@/components/backbutton";
-import ChestReward from "@/components/chestreward";
-import LevelNode from "@/components/levelnode";
-import SimpleNavBar from "@/components/simplenavbar";
-import { useGameProgress } from "@/context/GameContext";
-import { useRegistration } from "@/context/RegistrationContext";
-import { useLevelNavigation } from "@/hooks/useLevelNavigation";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
@@ -23,6 +16,13 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Defs, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import BackButton from "../components/backbutton";
+import ChestReward from "../components/chestreward";
+import LevelNode from "../components/levelnode";
+import SimpleNavBar from "../components/simplenavbar";
+import { useGameProgress } from "../context/GameContext";
+import { useRegistration } from "../context/RegistrationContext";
+import { useLevelNavigation } from "../hooks/useLevelNavigation";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 

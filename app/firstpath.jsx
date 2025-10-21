@@ -3,11 +3,11 @@ import { BackHandler, Image, StyleSheet, TouchableOpacity, View } from "react-na
 
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router"; // Importe este hook para receber parâmetros
 
-import AnimatedBackground from "@/components/animatedbackgroundpath";
-import BackButton from "@/components/backbutton";
-import ChestReward from "@/components/chestreward";
-import ShellPathMap from "@/components/shellpathmap";
-import SimpleNavBar from "@/components/simplenavbar";
+import AnimatedBackground from "../components/animatedbackgroundpath";
+import BackButton from "../components/backbutton";
+import ChestReward from "../components/chestreward";
+import ShellPathMap from "../components/shellpathmap";
+import SimpleNavBar from "../components/simplenavbar";
 
 export default function FirstPath() {
   const arrowIcon = require("../assets/images/icons/arrow_icon.png");
