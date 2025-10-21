@@ -10,7 +10,7 @@ import { RegistrationProvider } from "../context/RegistrationContext";
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
-  initialRouteName: "enter",
+  initialRouteName: "index",
 };
 
 export default function RootLayout() {
