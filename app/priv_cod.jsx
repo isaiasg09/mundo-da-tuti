@@ -1,5 +1,6 @@
 import BackButton from "@/components/backbutton";
 import PinkButton from "@/components/pinkbutton";
+import { resetGameProgress } from "@/utils/resetProgress";
 import { useEffect, useRef, useState } from "react";
 import {
   ImageBackground,
@@ -118,6 +119,17 @@ export default function Priv_Cod() {
             </View>
 
             <View style={styles.bottomSection}>
+              <PinkButton
+                title="RESETAR PROGRESSO"
+                onPress={resetGameProgress}
+                style={{
+                  backgroundColor: "#ff6600",
+                  paddingVertical: 10,
+                  marginBottom: 30,
+                  width: "90%",
+                }}
+              />
+
               <Text style={styles.termsText}>TERMOS E POLÍTICAS DE USO</Text>
               <TouchableOpacity style={styles.deleteButton} onPress={handleExcluirConta}>
                 <Text style={styles.deleteButtonText}>EXCLUIR CONTA</Text>

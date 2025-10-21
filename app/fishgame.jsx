@@ -16,9 +16,9 @@ import { GAME_DIFFICULTY_CONFIG } from "../constants/gameConfig";
 import { useGameProgress } from "../context/GameContext";
 
 import BackButton from "@/components/backbutton";
-import Fish from "@/components/Fish";
+import Fish from "@/components/fish";
 import ProgressBar from "@/components/progressbar";
-import WinScreen from "@/components/WinScreen";
+import WinScreen from "@/components/winscreen";
 
 const { width: windowWidth } = Dimensions.get("window");
 

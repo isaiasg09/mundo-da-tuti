@@ -1,5 +1,6 @@
 import BackButton from "@/components/backbutton";
-import LevelNode from "@/components/LevelNode";
+import ChestReward from "@/components/chestreward";
+import LevelNode from "@/components/levelnode";
 import SimpleNavBar from "@/components/simplenavbar";
 import { useGameProgress } from "@/context/GameContext";
 import { useRegistration } from "@/context/RegistrationContext";
@@ -171,17 +172,17 @@ export default function ThirdPath() {
 
   // Posições lógicas das estrelas (baseado no paths.js - 4 níveis para o terceiro caminho)
   const logicalStarPositions = [
-    { x: 200, y: 100 }, // Nível 1 (base)
-    { x: 300, y: 300 }, // Nível 2
-    { x: 120, y: 500 }, // Nível 3
-    { x: 250, y: 700 }, // Nível 4
+    { x: 200, y: 75 }, // Nível 1 (base)
+    { x: 300, y: 250 }, // Nível 2
+    { x: 120, y: 450 }, // Nível 3
+    { x: 250, y: 650 }, // Nível 4
   ];
 
   // Calcula a altura máxima lógica
   const logicalMaxY = Math.max(...logicalStarPositions.map((p) => p.y));
 
   // Altura real do container
-  const maxY = logicalMaxY + 100;
+  const maxY = logicalMaxY + 200;
 
   // Inverte o eixo Y: nível 1 fica embaixo (próximo à navbar)
   const starPositions = logicalStarPositions.map((p) => ({
@@ -257,7 +258,7 @@ export default function ThirdPath() {
         <Rect x={0} y={0} width="100%" height="100%" fill="url(#bgGrad)" />
       </Svg>
 
-      {/* Topo fixo: voltar e som */}
+      {/* Topo fixo: voltar, baú e som */}
       <View style={styles.topButtonsContainer}>
         <BackButton />
         <TouchableOpacity
@@ -333,12 +334,46 @@ export default function ThirdPath() {
             style={{ position: "absolute", top: 0, left: 0, zIndex: 0 }}
           >
             <Path
-              d={generatePath(starPositions, {
-                startDir: 1,
-                baseAmp: 50,
-                ampScale: 0.4,
-                pivotInvertAfter: 2,
-              })}
+              d={
+                starPositions.length > 0
+                  ? generatePath(starPositions, {
+                      startDir: 1,
+                      baseAmp: 50,
+                      ampScale: 0.4,
+                      pivotInvertAfter: 2,
+                    })
+                  : ""
+              }
+              stroke="#8B4513"
+              strokeWidth={5}
+              strokeDasharray="8 6"
+              fill="none"
+              strokeLinecap="round"
+            />
+          </Svg>
+
+          {/* Caminho da última estrela até o baú */}
+          <Svg
+            height={maxY}
+            width="100%"
+            style={{ position: "absolute", top: 0, left: 0, zIndex: 0 }}
+          >
+            <Path
+              d={
+                starPositions.length > 0
+                  ? generatePath(
+                      [
+                        starPositions[starPositions.length - 1],
+                        { x: screenWidth * 0.5, y: 60 }, // Posição do baú
+                      ],
+                      {
+                        startDir: 1,
+                        baseAmp: 60,
+                        ampScale: 0.4,
+                      }
+                    )
+                  : ""
+              }
               stroke="#8B4513"
               strokeWidth={5}
               strokeDasharray="8 6"
@@ -372,6 +407,24 @@ export default function ThirdPath() {
               />
             );
           })}
+
+          {/* Baú do tesouro no final do caminho */}
+          <View
+            style={{
+              position: "absolute",
+              top: 40, // Posição acima do último nível
+              left: screenWidth * 0.5 - 30, // Centralizado
+              zIndex: 15,
+            }}
+          >
+            <ChestReward
+              pathId="third"
+              isVisible={true}
+              onClose={() => {
+                // Pode recarregar a tela ou fazer outras ações após fechar o modal
+              }}
+            />
+          </View>
         </View>
       </ScrollView>
 

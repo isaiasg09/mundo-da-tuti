@@ -1,5 +1,5 @@
 import GameHeader from "@/components/gameheader";
-import WinScreen from "@/components/WinScreen";
+import WinScreen from "@/components/winscreen";
 import { GAME_DIFFICULTY_CONFIG } from "@/constants/gameConfig";
 import { useLevelNavigation } from "@/hooks/useLevelNavigation";
 import { Image, ImageBackground } from "expo-image";

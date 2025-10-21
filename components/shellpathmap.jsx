@@ -1,29 +1,14 @@
-import React, { useState, useMemo, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Alert,
-  ScrollView,
-  TouchableOpacity,
-  ImageBackground,
-  Dimensions,
-  Image,
-} from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
+import React, { useMemo, useState } from "react";
+import { Alert, Dimensions, StyleSheet, View } from "react-native";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
 
 // Importa hook de progresso do jogo
 import { useGameProgress } from "@/context/GameContext";
 import { useLevelNavigation } from "@/hooks/useLevelNavigation";
-import LevelNode from "./LevelNode";
+import LevelNode from "./levelnode";
 
-import Svg, { Path } from "react-native-svg";
 import { useRouter } from "expo-router";
+import Svg, { Path } from "react-native-svg";
 
 const LEVEL_STATES = {
   COMPLETED: "completed",
@@ -302,6 +287,9 @@ export default function ShellPathMap({ pathId }) {
           fill="none"
           strokeLinecap="round"
           strokeDasharray={"10 8"}
+          // strokeDasharray={
+          //   levels[levels.length - 1].state === LEVEL_STATES.COMPLETED ? "0" : "10 8"
+          // }
           pointerEvents="box-none"
         />
       </Svg>
@@ -372,6 +360,7 @@ export default function ShellPathMap({ pathId }) {
           </Animated.View>
         );
       })}
+
       {/* </ScrollView> */}
     </View>
   );

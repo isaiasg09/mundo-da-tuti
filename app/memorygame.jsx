@@ -23,7 +23,7 @@ import { useLevelNavigation } from "../hooks/useLevelNavigation";
 
 import GameHeader from "@/components/gameheader";
 import ProgressBar from "@/components/progressbar";
-import WinScreen from "@/components/WinScreen";
+import WinScreen from "@/components/winscreen";
 import { Image, ImageBackground } from "expo-image";
 
 // Assets

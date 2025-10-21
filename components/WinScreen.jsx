@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Image,
   StyleSheet,
@@ -23,23 +23,69 @@ export default function WinScreen({
   customMessage,
   visible = true,
 }) {
+  // Usar uma key única para forçar recriação do componente confetti a cada vitória
+  const [componentKey, setComponentKey] = useState(Date.now());
   const confettiRef = useRef(null);
+  const [confettiStarted, setConfettiStarted] = useState(false);
+  const animationTimeoutRef = useRef(null);
+  const stopTimeoutRef = useRef(null);
+
+  const cleanupResources = useCallback(() => {
+    // Parar confetti imediatamente
+    if (confettiRef.current) {
+      confettiRef.current.stop();
+    }
+
+    // Limpar todos os timeouts
+    if (animationTimeoutRef.current) {
+      clearTimeout(animationTimeoutRef.current);
+      animationTimeoutRef.current = null;
+    }
+    if (stopTimeoutRef.current) {
+      clearTimeout(stopTimeoutRef.current);
+      stopTimeoutRef.current = null;
+    }
+
+    setConfettiStarted(false);
+  }, []);
 
   useEffect(() => {
-    // Disparar confete após um pequeno delay para garantir que o componente foi montado
-    const timer = setTimeout(() => {
-      if (confettiRef.current) {
-        confettiRef.current.start();
-      }
-    }, 100);
+    if (!visible) {
+      cleanupResources();
+      return;
+    }
 
-    return () => clearTimeout(timer);
-  }, []);
+    // Gerar nova key para forçar recriação do confetti
+    setComponentKey(Date.now());
+
+    // Iniciar confetti apenas uma vez
+    if (!confettiStarted) {
+      animationTimeoutRef.current = setTimeout(() => {
+        if (confettiRef.current && !confettiStarted) {
+          confettiRef.current.start();
+          setConfettiStarted(true);
+
+          // Parar automaticamente após 2 segundos
+          stopTimeoutRef.current = setTimeout(() => {
+            if (confettiRef.current) {
+              confettiRef.current.stop();
+            }
+          }, 2000);
+        }
+      }, 100);
+    }
+
+    // Cleanup function
+    return cleanupResources;
+  }, [visible, confettiStarted, cleanupResources]);
 
   if (!visible) return null;
 
   // Usar as props novas se fornecidas, senão usar as antigas para compatibilidade
-  const handleContinue = () => {
+  const handleContinue = useCallback(() => {
+    // Limpar todos os recursos antes de navegar
+    cleanupResources();
+
     // Usar apenas openNext para navegar, pois o nível já foi marcado como completo quando ganhou
     if (openNext && gameId) {
       try {
@@ -54,19 +100,32 @@ export default function WinScreen({
       // Se não há próximo nível, volta ao mapa
       openMap();
     }
-  };
+  }, [cleanupResources, openNext, gameId, onContinue, openMap]);
 
-  const handleBackToMap = openMap || onBackToMap;
+  const handleBackToMap = useCallback(() => {
+    // Limpar todos os recursos antes de navegar
+    cleanupResources();
+
+    if (openMap) {
+      openMap();
+    } else if (onBackToMap) {
+      onBackToMap();
+    }
+  }, [cleanupResources, openMap, onBackToMap]);
   const displayMessage = message || customMessage;
 
   return (
     <View style={styles.winContainer}>
       <ConfettiCannon
+        key={componentKey} // Força recriação do componente
         ref={confettiRef}
-        count={200}
+        count={100} // Reduzido ainda mais para melhor performance
         origin={{ x: -10, y: 0 }}
         autoStart={false}
         fadeOut={true}
+        fallSpeed={4000} // Acelera ainda mais a queda
+        explosionSpeed={300} // Reduz velocidade da explosão
+        colors={["#ff6b6b", "#4ecdc4", "#45b7d1", "#f9ca24", "#6c5ce7"]} // Cores fixas para evitar cálculos
       />
 
       <Text style={styles.winTitle}>{displayMessage}</Text>

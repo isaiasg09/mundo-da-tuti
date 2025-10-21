@@ -79,11 +79,6 @@ export const GameProvider = ({ children }) => {
     (async () => {
       console.log("📱 Carregando progresso do AsyncStorage...");
 
-      // Debug: Verificar se deve resetar progresso
-      if (!DONT_RESET_PROGRESS_ON_START) {
-        console.log("🔄 DONT_RESET_PROGRESS_ON_START é false, resetando progresso");
-      }
-
       try {
         const mod = await import("@react-native-async-storage/async-storage");
         asyncStorageRef.current = mod.default;
@@ -196,7 +191,7 @@ export const GameProvider = ({ children }) => {
     });
   };
 
-  // Se o ultimo nível do caminho foi completado, desbloqueia o próximo nível
+  // Se o ultimo nível do caminho foi completado, desbloqueia o próximo nível (mas não próximo caminho)
   const unlockNextLevel = (pathId, currentLevelIndex1Based) => {
     const nextKey = getGameKey(currentLevelIndex1Based + 1);
     const games = gameProgress.paths?.[pathId]?.games;
@@ -204,10 +199,8 @@ export const GameProvider = ({ children }) => {
     if (games && games[nextKey] && games[nextKey].status === STATUS.LOCKED) {
       console.log(`🔓 Desbloqueando próximo nível: ${pathId}.${nextKey}`);
       updateGameStatus(pathId, nextKey, STATUS.UNLOCKED);
-    } else {
-      // Se não há próximo nível neste caminho, verificar se deve desbloquear próximo caminho
-      checkAndUnlockNextPath(pathId, currentLevelIndex1Based);
     }
+    // Removido o desbloqueio automático do próximo caminho - agora é feito pelo baú
   };
 
   // Verifica se deve desbloquear o próximo caminho após completar o último jogo do caminho atual
@@ -266,6 +259,72 @@ export const GameProvider = ({ children }) => {
     unlockNextLevel(pathId, levelIndex);
   };
 
+  // Verifica se um caminho foi completamente finalizado (todos os jogos completos)
+  const isPathCompleted = (pathId) => {
+    // Mapear pathId para os IDs internos se necessário
+    const pathMapping = {
+      first: "castelo",
+      second: "molusco_perola",
+      third: "anemona",
+    };
+
+    const internalPathId = pathMapping[pathId] || pathId;
+
+    const pathGameCounts = {
+      castelo: 6,
+      molusco_perola: 8,
+      anemona: 4,
+    };
+
+    const totalGames = pathGameCounts[internalPathId];
+    if (!totalGames) return false;
+
+    const games = gameProgress.paths?.[internalPathId]?.games;
+    if (!games) return false;
+
+    // Verificar se todos os jogos estão completos
+    for (let i = 1; i <= totalGames; i++) {
+      const gameKey = getGameKey(i);
+      if (games[gameKey]?.status !== STATUS.COMPLETED) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Função para o baú desbloquear o próximo caminho
+  const unlockNextPathViaChest = (pathId) => {
+    // Mapear pathId para os IDs internos se necessário
+    const pathMapping = {
+      first: "castelo",
+      second: "molusco_perola",
+      third: "anemona",
+    };
+
+    const internalPathId = pathMapping[pathId] || pathId;
+
+    const pathOrder = PATH_ORDER;
+    const currentPathIndex = pathOrder.indexOf(internalPathId);
+
+    if (currentPathIndex < pathOrder.length - 1) {
+      const nextPathId = pathOrder[currentPathIndex + 1];
+      const nextPathStatus = gameProgress.paths?.[nextPathId]?.status;
+
+      if (nextPathStatus === STATUS.LOCKED) {
+        console.log(`🎉 Desbloqueando próximo caminho via baú: ${nextPathId}`);
+        handleSetGameProgress({
+          paths: {
+            [nextPathId]: {
+              status: STATUS.UNLOCKED,
+            },
+          },
+        });
+        return nextPathId; // Retorna o caminho desbloqueado para mostrar na mensagem
+      }
+    }
+    return null;
+  };
+
   return (
     <GameContext.Provider
       value={{
@@ -277,6 +336,8 @@ export const GameProvider = ({ children }) => {
         completeLevel,
         getGameKey,
         getLevelIndex1Based,
+        isPathCompleted,
+        unlockNextPathViaChest,
       }}
     >
       {children}

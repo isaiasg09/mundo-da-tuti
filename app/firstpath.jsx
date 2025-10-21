@@ -1,22 +1,13 @@
 import React, { useCallback } from "react";
-import {
-  View,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  ImageBackground,
-  Alert,
-  BackHandler,
-} from "react-native";
+import { BackHandler, Image, StyleSheet, TouchableOpacity, View } from "react-native";
 
-import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router"; // Importe este hook para receber parâmetros
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router"; // Importe este hook para receber parâmetros
 
-import SimpleNavBar from "@/components/simplenavbar";
-import BackButton from "@/components/backbutton";
-import ShellPathMap from "@/components/shellpathmap";
 import AnimatedBackground from "@/components/animatedbackgroundpath";
+import BackButton from "@/components/backbutton";
+import ChestReward from "@/components/chestreward";
+import ShellPathMap from "@/components/shellpathmap";
+import SimpleNavBar from "@/components/simplenavbar";
 
 export default function FirstPath() {
   const arrowIcon = require("../assets/images/icons/arrow_icon.png");
@@ -58,7 +49,13 @@ export default function FirstPath() {
           }}
         />
 
-        <Image source={treasureImg} style={styles.rewardImg} />
+        <ChestReward
+          pathId="first"
+          isVisible={true}
+          onClose={() => {
+            // Pode recarregar a tela ou fazer outras ações após fechar o modal
+          }}
+        />
 
         <TouchableOpacity
           style={{

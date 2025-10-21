@@ -1,5 +1,5 @@
 import GameHeader from "@/components/gameheader";
-import WinScreen from "@/components/WinScreen";
+import WinScreen from "@/components/winscreen";
 import { GAME_DIFFICULTY_CONFIG } from "@/constants/gameConfig";
 import { useLevelNavigation } from "@/hooks/useLevelNavigation";
 import { Image } from "expo-image";
@@ -20,25 +20,25 @@ const WORD_BANK = {
     { word: "PÉ", image: require("../assets/images/words/pe.webp") },
   ],
   3: [
-    { word: "OVO", image: require("../assets/images/combinacao/ancora.webp") },
-    { word: "SOL", image: require("../assets/images/combinacao/estrela.png") },
-    { word: "CÃO", image: require("../assets/images/combinacao/peixe.png") },
-    { word: "PÃO", image: require("../assets/images/combinacao/treasure.png") },
-    { word: "MÃO", image: require("../assets/images/combinacao/concha.webp") },
+    { word: "OVO", image: require("../assets/images/words/ovo.png") },
+    { word: "SOL", image: require("../assets/images/words/sol.webp") },
+    { word: "CÃO", image: require("../assets/images/words/cao.png") },
+    { word: "PÃO", image: require("../assets/images/words/pao.webp") },
+    { word: "MÃO", image: require("../assets/images/words/mao.png") },
   ],
   4: [
-    { word: "BOLA", image: require("../assets/images/combinacao/treasure.png") },
-    { word: "CASA", image: require("../assets/images/castelo.png") },
-    { word: "GATO", image: require("../assets/images/combinacao/peixe.png") },
-    { word: "PATO", image: require("../assets/images/combinacao/peixe.png") },
-    { word: "MESA", image: require("../assets/images/combinacao/treasure.png") },
+    { word: "BOLA", image: require("../assets/images/words/bola.png") },
+    { word: "CASA", image: require("../assets/images/words/casa.webp") },
+    { word: "LUPA", image: require("../assets/images/words/lupa.webp") },
+    { word: "PATO", image: require("../assets/images/words/pato.webp") },
+    { word: "MESA", image: require("../assets/images/words/mesa.png") },
   ],
   5: [
-    { word: "BALÃO", image: require("../assets/images/combinacao/treasure.png") },
-    { word: "CARRO", image: require("../assets/images/castelo.png") },
-    { word: "FLORE", image: require("../assets/images/combinacao/estrela.png") },
-    { word: "PEIXE", image: require("../assets/images/combinacao/peixe.png") },
-    { word: "PASTO", image: require("../assets/images/combinacao/estrela.png") },
+    { word: "BALÃO", image: require("../assets/images/words/balao.webp") },
+    { word: "CARRO", image: require("../assets/images/words/carro.png") },
+    { word: "HOMEM", image: require("../assets/images/words/homem.webp") },
+    { word: "PEIXE", image: require("../assets/images/words/peixe.png") },
+    { word: "CHUVA", image: require("../assets/images/words/chuva.webp") },
   ],
 };
 
@@ -54,6 +54,9 @@ export default function WordGame() {
   const [availableLetters, setAvailableLetters] = useState([]);
   const [isGameWon, setIsGameWon] = useState(false);
   const [levelCompleted, setLevelCompleted] = useState(false);
+  const [isWrongWord, setIsWrongWord] = useState(false);
+  const [isCorrectWord, setIsCorrectWord] = useState(false);
+  const [shakeAnimation, setShakeAnimation] = useState(false);
 
   // Função para embaralhar array
   const shuffleArray = (array) => {
@@ -116,30 +119,52 @@ export default function WordGame() {
 
   // Função para selecionar letra
   const handleLetterPress = (letterObj) => {
+    // Não permitir seleção durante erro ou acerto
+    if (isWrongWord || isCorrectWord) return;
+
     // Verificar se a letra já foi selecionada
     if (selectedLetters.find((l) => l.id === letterObj.id)) return;
 
-    // Verificar se ainda há espaço para letras
-    if (selectedLetters.length >= currentWord.word.length) return;
+    // Encontrar a próxima posição vazia nos slots
+    const nextEmptyIndex = selectedLetters.length;
+    if (nextEmptyIndex >= currentWord.word.length) return;
 
-    const newSelected = [...selectedLetters, letterObj];
+    // Criar array de letras com posições específicas
+    const newSelected = [...selectedLetters];
+    newSelected[nextEmptyIndex] = letterObj;
     setSelectedLetters(newSelected);
 
-    // Verificar vitória
+    // Verificar vitória ou erro quando todos os slots estão preenchidos
     if (newSelected.length === currentWord.word.length) {
       const formedWord = newSelected.map((l) => l.letter).join("");
       if (formedWord === currentWord.word) {
-        // Pequeno delay para mostrar a palavra completa antes da vitória
+        // Palavra correta - mostrar feedback verde!
+        setIsCorrectWord(true);
         setTimeout(() => {
           setIsGameWon(true);
-        }, 500);
+        }, 1000); // Mais tempo para ver o feedback verde
+      } else {
+        // Palavra incorreta - mostrar erro e resetar
+        setIsWrongWord(true);
+        setShakeAnimation(true);
+
+        // Feedback de erro por 1.5 segundos, depois limpa as letras
+        setTimeout(() => {
+          setSelectedLetters([]);
+          setIsWrongWord(false);
+        }, 1500);
       }
     }
   };
 
   // Função para remover letra selecionada
   const handleSelectedLetterPress = (index) => {
-    const newSelected = selectedLetters.filter((_, i) => i !== index);
+    // Não permitir remoção durante erro ou acerto
+    if (isWrongWord || isCorrectWord) return;
+
+    // Remover apenas a letra no índice específico e reorganizar
+    const newSelected = [...selectedLetters];
+    newSelected.splice(index, 1);
     setSelectedLetters(newSelected);
   };
 
@@ -153,6 +178,23 @@ export default function WordGame() {
       }
     }
   }, [isGameWon, gameId, onWinMarkOnly, levelCompleted]);
+
+  // Animação de shake quando há erro
+  useEffect(() => {
+    if (shakeAnimation) {
+      let shakeCount = 0;
+      const shakeInterval = setInterval(() => {
+        setShakeAnimation(shakeCount % 2 === 0);
+        shakeCount++;
+        if (shakeCount >= 6) {
+          clearInterval(shakeInterval);
+          setShakeAnimation(false);
+        }
+      }, 100);
+
+      return () => clearInterval(shakeInterval);
+    }
+  }, [shakeAnimation]);
 
   // Se não há palavra carregada ainda
   if (!currentWord) {
@@ -180,7 +222,11 @@ export default function WordGame() {
           style={{
             width: slotWidth,
             height: verticalScale(8),
-            backgroundColor: "#4A9EFF",
+            backgroundColor: isCorrectWord
+              ? "#00AA00"
+              : isWrongWord
+                ? "#FF4444"
+                : "#4A9EFF", // Verde quando correto, vermelho quando erro
             borderRadius: scale(4),
             alignItems: "center",
             justifyContent: "center",
@@ -280,7 +326,7 @@ export default function WordGame() {
         {/* Título */}
         <Text
           style={{
-            color: "#FEF294",
+            color: isCorrectWord ? "#00AA00" : isWrongWord ? "#FF4444" : "#FEF294",
             fontSize: moderateScale(28),
             fontFamily: "TTMilksCasualPie",
             textAlign: "center",
@@ -291,7 +337,11 @@ export default function WordGame() {
             textShadowRadius: 4,
           }}
         >
-          MONTE A PALAVRA:
+          {isCorrectWord
+            ? "PALAVRA CORRETA!"
+            : isWrongWord
+              ? "PALAVRA INCORRETA!"
+              : "MONTE A PALAVRA:"}
         </Text>
 
         {/* Imagem da palavra */}
@@ -321,10 +371,13 @@ export default function WordGame() {
               alignItems: "center",
               marginBottom: verticalScale(10),
               minHeight: verticalScale(50),
+              // Efeito de shake quando há erro
+              transform: shakeAnimation ? [{ translateX: 10 }] : [{ translateX: 0 }],
             }}
           >
-            {selectedLetters.map((letterObj, index) => {
-              // Ajustar tamanho das letras selecionadas baseado no tamanho da palavra
+            {Array.from({ length: currentWord.word.length }).map((_, index) => {
+              // Renderizar todos os slots, com ou sem letras
+              const letterObj = selectedLetters[index];
               const wordLength = currentWord.word.length;
               const letterWidth = wordLength >= 5 ? scale(50) : scale(60);
               const fontSize = wordLength >= 5 ? moderateScale(30) : moderateScale(36);
@@ -333,7 +386,7 @@ export default function WordGame() {
               return (
                 <TouchableOpacity
                   key={index}
-                  onPress={() => handleSelectedLetterPress(index)}
+                  onPress={() => letterObj && handleSelectedLetterPress(index)}
                   style={{
                     width: letterWidth,
                     height: verticalScale(50),
@@ -342,18 +395,24 @@ export default function WordGame() {
                     marginHorizontal: marginHorizontal,
                   }}
                 >
-                  <Text
-                    style={{
-                      fontSize: fontSize,
-                      fontFamily: "TTMilksCasualPie",
-                      color: "#FFFFFF",
-                      textShadowColor: "rgba(0,0,0,0.3)",
-                      textShadowOffset: { width: 1, height: 1 },
-                      textShadowRadius: 2,
-                    }}
-                  >
-                    {letterObj.letter}
-                  </Text>
+                  {letterObj && (
+                    <Text
+                      style={{
+                        fontSize: fontSize,
+                        fontFamily: "TTMilksCasualPie",
+                        color: isCorrectWord
+                          ? "#00AA00"
+                          : isWrongWord
+                            ? "#FF4444"
+                            : "#FFFFFF", // Verde quando correto, vermelho quando erro
+                        textShadowColor: "rgba(0,0,0,0.3)",
+                        textShadowOffset: { width: 1, height: 1 },
+                        textShadowRadius: 2,
+                      }}
+                    >
+                      {letterObj.letter}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               );
             })}

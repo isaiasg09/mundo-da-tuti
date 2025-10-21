@@ -1,5 +1,6 @@
 import BackButton from "@/components/backbutton";
-import LevelNode from "@/components/LevelNode";
+import ChestReward from "@/components/chestreward";
+import LevelNode from "@/components/levelnode";
 import SimpleNavBar from "@/components/simplenavbar";
 import { useGameProgress } from "@/context/GameContext";
 import { useRegistration } from "@/context/RegistrationContext";
@@ -144,7 +145,7 @@ export default function SecondPath() {
 
   // Posições lógicas das pérolas (nível 1 y: 0, nível 2 y: 80, ...)
   const logicalPearlPositions = [
-    { x: 200, y: 100 }, // Nível 1 (base)
+    { x: 200, y: 75 }, // Nível 1 (base)
     { x: 300, y: 250 }, // Nível 2
     { x: 80, y: 300 }, // Nível 3
     { x: 250, y: 375 }, // Nível 4
@@ -158,7 +159,7 @@ export default function SecondPath() {
   const logicalMaxY = Math.max(...logicalPearlPositions.map((p) => p.y));
 
   // Altura real do container
-  const maxY = logicalMaxY + 100;
+  const maxY = logicalMaxY + 200;
 
   // Inverte o eixo Y: nível 1 fica embaixo
   const pearlPositions = logicalPearlPositions.map((p) => ({
@@ -235,7 +236,7 @@ export default function SecondPath() {
         <Rect x={0} y={0} width="100%" height="100%" fill="url(#bgGrad)" />
       </Svg>
 
-      {/* Topo fixo: voltar e som */}
+      {/* Topo fixo: voltar, baú e som */}
       <View style={styles.topButtonsContainer}>
         <BackButton />
         <TouchableOpacity
@@ -291,11 +292,18 @@ export default function SecondPath() {
             style={{ position: "absolute", top: 0, left: 0, zIndex: 0 }}
           >
             <Path
-              d={generatePath([pearlPositions[0], { x: pearlPositions[0].x, y: maxY }], {
-                startDir: 1,
-                baseAmp: 40,
-                ampScale: 0.35,
-              })} // lado ajustado para a DIREITA agora
+              d={
+                pearlPositions.length > 0
+                  ? generatePath(
+                      [pearlPositions[0], { x: pearlPositions[0].x, y: maxY }],
+                      {
+                        startDir: 1,
+                        baseAmp: 40,
+                        ampScale: 0.35,
+                      }
+                    )
+                  : ""
+              } // lado ajustado para a DIREITA agora
               stroke="#d49b65"
               strokeWidth={5}
               strokeDasharray="10 8"
@@ -311,12 +319,46 @@ export default function SecondPath() {
             style={{ position: "absolute", top: 0, left: 0, zIndex: 0 }}
           >
             <Path
-              d={generatePath(pearlPositions, {
-                startDir: 1,
-                baseAmp: 60,
-                ampScale: 0.45,
-                pivotInvertAfter: 3,
-              })} // inverte direções a partir do nível 3
+              d={
+                pearlPositions.length > 0
+                  ? generatePath(pearlPositions, {
+                      startDir: 1,
+                      baseAmp: 60,
+                      ampScale: 0.45,
+                      pivotInvertAfter: 3,
+                    })
+                  : ""
+              } // inverte direções a partir do nível 3
+              stroke="#d49b65"
+              strokeWidth={5}
+              strokeDasharray="10 8"
+              fill="none"
+              strokeLinecap="round"
+            />
+          </Svg>
+
+          {/* Caminho do último nível até o baú */}
+          <Svg
+            height={maxY}
+            width="100%"
+            style={{ position: "absolute", top: 0, left: 0, zIndex: 0 }}
+          >
+            <Path
+              d={
+                pearlPositions.length > 0
+                  ? generatePath(
+                      [
+                        pearlPositions[pearlPositions.length - 1],
+                        { x: screenWidth * 0.5, y: 60 }, // Posição do baú
+                      ],
+                      {
+                        startDir: 1,
+                        baseAmp: 60,
+                        ampScale: 0.45,
+                      }
+                    )
+                  : ""
+              }
               stroke="#d49b65"
               strokeWidth={5}
               strokeDasharray="10 8"
@@ -369,6 +411,24 @@ export default function SecondPath() {
               />
             );
           })}
+
+          {/* Baú do tesouro no final do caminho */}
+          <View
+            style={{
+              position: "absolute",
+              top: 40, // Posição acima do último nível
+              left: screenWidth * 0.5 - 30, // Centralizado
+              zIndex: 15,
+            }}
+          >
+            <ChestReward
+              pathId="second"
+              isVisible={true}
+              onClose={() => {
+                // Pode recarregar a tela ou fazer outras ações após fechar o modal
+              }}
+            />
+          </View>
         </View>
       </ScrollView>
 
