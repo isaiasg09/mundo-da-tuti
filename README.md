@@ -72,8 +72,9 @@ Para rodar este projeto localmente, siga os passos abaixo:
     ```bash
     cp .env.example .env
     ```
-    
+
     Edite o arquivo `.env` e preencha com suas credenciais do Firebase Console:
+
     ```bash
     EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key_here
     EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com

@@ -278,14 +278,37 @@ export const GameProvider = ({ children }) => {
 
     // Verificar se um path foi completado (todos os jogos finalizados)
     isPathCompleted: (pathKey) => {
-      const path = gameProgress.paths[pathKey];
-      if (!path || !path.games) return false;
+      // Converter pathKey se necessário (first -> castelo, etc.)
+      const realPathKey =
+        pathKey === "first"
+          ? "castelo"
+          : pathKey === "second"
+            ? "molusco_perola"
+            : pathKey === "third"
+              ? "anemona"
+              : pathKey;
+
+      console.log(
+        `[GameContext] isPathCompleted check - pathKey: ${pathKey}, realPathKey: ${realPathKey}`
+      );
+
+      const path = gameProgress.paths[realPathKey];
+      if (!path || !path.games) {
+        console.log(`[GameContext] Path not found or no games: ${realPathKey}`);
+        return false;
+      }
 
       const games = Object.values(path.games);
-      if (games.length === 0) return false;
+      if (games.length === 0) {
+        console.log(`[GameContext] No games in path: ${realPathKey}`);
+        return false;
+      }
 
       // Todos os jogos devem estar completados
-      return games.every((game) => game.status === "completed");
+      const allCompleted = games.every((game) => game.status === "completed");
+      console.log(`[GameContext] All games completed in ${realPathKey}: ${allCompleted}`);
+
+      return allCompleted;
     },
 
     // Desbloquear próximo path via baú de recompensa
@@ -296,13 +319,23 @@ export const GameProvider = ({ children }) => {
       }
 
       // Mapear qual é o próximo path
+      // Converter primeiro se necessário (first -> castelo, etc.)
+      const realPathKey =
+        pathKey === "first"
+          ? "castelo"
+          : pathKey === "second"
+            ? "molusco_perola"
+            : pathKey === "third"
+              ? "anemona"
+              : pathKey;
+
       const pathOrder = {
         castelo: "molusco_perola",
         molusco_perola: "anemona",
         anemona: null, // último path
       };
 
-      const nextPathKey = pathOrder[pathKey];
+      const nextPathKey = pathOrder[realPathKey];
       if (!nextPathKey) {
         console.log("📍 Este é o último path, não há próximo para desbloquear");
         return false;

@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import BackButton from "../components/backbutton";
 import PinkButton from "../components/pinkbutton";
+import { useAuth } from "../context/AuthContext";
+import { useGameProgress } from "../context/GameContext";
 import { resetGameProgress } from "../utils/resetProgress";
 
 export default function Priv_Cod() {
@@ -17,6 +19,8 @@ export default function Priv_Cod() {
   const [showConfig, setShowConfig] = useState(false);
   const codeLength = 4;
   const inputRef = useRef(null);
+  const { user } = useAuth();
+  const { currentChildId } = useGameProgress();
 
   useEffect(() => {
     if (code.length === codeLength) {
@@ -121,7 +125,7 @@ export default function Priv_Cod() {
             <View style={styles.bottomSection}>
               <PinkButton
                 title="RESETAR PROGRESSO"
-                onPress={resetGameProgress}
+                onPress={() => resetGameProgress(user, currentChildId)}
                 style={{
                   backgroundColor: "#ff6600",
                   paddingVertical: 10,

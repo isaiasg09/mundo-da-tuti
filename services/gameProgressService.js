@@ -321,9 +321,14 @@ class GameProgressService {
         currentProgress.paths[currentPathKey].status = "completed";
 
         // Desbloqueia o próximo caminho
+        console.log(`🛤️ Desbloqueando próximo caminho: ${nextPathKey}`);
         currentProgress.paths[nextPathKey].status = "unlocked";
+
         if (currentProgress.paths[nextPathKey].games.game1) {
+          console.log(`🎮 Desbloqueando game1 do caminho: ${nextPathKey}`);
           currentProgress.paths[nextPathKey].games.game1.status = "unlocked";
+        } else {
+          console.log(`⚠️ Game1 não encontrado no caminho: ${nextPathKey}`);
         }
 
         // Salva no Firebase usando a nova estrutura
@@ -658,9 +663,20 @@ class GameProgressService {
         (game) => game.status === "completed"
       );
 
+      console.log(`🏁 Checking if path ${pathKey} is completed:`);
+      console.log(`🏁 All games completed: ${allGamesCompleted}`);
+      console.log(`🏁 Next game result: ${nextGameResult.nextGame}`);
+      console.log(
+        `🏁 Games status:`,
+        Object.keys(path.games).map((key) => `${key}: ${path.games[key].status}`)
+      );
+
       if (allGamesCompleted && nextGameResult.nextGame === null) {
+        console.log(`🎯 Path ${pathKey} completed! Unlocking next path...`);
         // Desbloquear próximo caminho
         const nextPathResult = await this.unlockNextPath(guardianId, childId, pathKey);
+        console.log(`🎯 Next path unlock result:`, nextPathResult);
+
         if (nextPathResult.success && nextPathResult.progress) {
           currentProgress = nextPathResult.progress;
         }
@@ -867,6 +883,49 @@ class GameProgressService {
       "#87CEEB", // Azul céu
       "#FFE4B5", // Pêssego
     ];
+  }
+
+  // === FUNÇÃO DE RESET DE PROGRESSO ===
+
+  async resetChildProgress(guardianId, childId) {
+    try {
+      console.log(
+        `🔄 Resetando progresso da criança ${childId} para guardião ${guardianId}`
+      );
+
+      const progressRef = this.getProgressRef(guardianId, childId);
+      const initialProgress = this.getDefaultProgress();
+
+      // Resetar progresso no Firebase para o progresso inicial
+      await setDoc(
+        progressRef,
+        {
+          gameProgress: initialProgress,
+          "profile.updated_at": serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      // Limpar progresso local
+      await this.clearLocalProgress(guardianId, childId);
+
+      console.log(`✅ Progresso da criança ${childId} resetado com sucesso`);
+      return { success: true, progress: initialProgress };
+    } catch (error) {
+      console.error(`❌ Erro ao resetar progresso da criança ${childId}:`, error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Limpar progresso local específico de uma criança
+  async clearLocalProgress(guardianId, childId) {
+    try {
+      const key = `@mdt:progress:${guardianId}:${childId}`;
+      await AsyncStorage.removeItem(key);
+      console.log(`🗑️ Progresso local da criança ${childId} removido`);
+    } catch (error) {
+      console.error(`❌ Erro ao limpar progresso local da criança ${childId}:`, error);
+    }
   }
 }
 

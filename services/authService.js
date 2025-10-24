@@ -7,6 +7,7 @@ import {
 } from "firebase/auth";
 import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, firestore } from "./firebase";
+import GameProgressService from "./gameProgressService";
 
 class AuthService {
   // Helper para aguardar Firebase estar pronto
@@ -164,35 +165,7 @@ class AuthService {
           updated_at: serverTimestamp(),
         },
 
-        gameProgress: {
-          paths: {
-            castelo: {
-              status: "unlocked",
-              games: {
-                game1: { status: "unlocked" },
-                game2: { status: "locked" },
-                game3: { status: "locked" },
-                game4: { status: "locked" },
-                game5: { status: "locked" },
-                game6: { status: "locked" },
-              },
-            },
-            molusco_perola: {
-              status: "locked",
-              games: {},
-            },
-            anemona: {
-              status: "locked",
-              games: {},
-            },
-          },
-          overall_progress: {
-            total_games_completed: 0,
-            last_played: null,
-            learning_velocity: null,
-            retention_rate: null,
-          },
-        },
+        gameProgress: new GameProgressService().getDefaultProgress(),
 
         settings: {
           audio: {
