@@ -35,4 +35,17 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# exemplo de app
 app-example
+
+# arquivos de desenvolvimento e debug
+*.md
+*_old.js
+*_new.js
+debug_*.js
+test_*.js
+scripts/debugTest.js
+scripts/testFirebaseConnection.js
+scripts/testOfflineSync.js
+context/AuthContextSimple.js
+utils/accountManager.js
