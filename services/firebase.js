@@ -4,15 +4,15 @@ import { getApps, initializeApp } from "firebase/app";
 import { getAuth, getReactNativePersistence, initializeAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// Configuração do Firebase do Console
+// Configuração do Firebase do Console usando variáveis de ambiente
 const firebaseConfig = {
-  apiKey: "AIzaSyBUAj3Yp6RrlRd48qOulFMHTj4fsP2eZ0M",
-  authDomain: "mundo-da-tuti.firebaseapp.com",
-  projectId: "mundo-da-tuti",
-  storageBucket: "mundo-da-tuti.firebasestorage.app",
-  messagingSenderId: "838847807679",
-  appId: "1:838847807679:web:e874401651ae4ac51b460a",
-  measurementId: "G-ZYB2LTNZ9F",
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "838847807679",
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "1:838847807679:web:e874401651ae4ac51b460a",
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-ZYB2LTNZ9F",
 };
 
 // Inicializar Firebase
