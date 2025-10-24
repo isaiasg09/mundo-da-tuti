@@ -66,16 +66,44 @@ Para rodar este projeto localmente, siga os passos abaixo:
     npm install
     ```
 
-3.  **Inicie o Servidor de Desenvolvimento do Expo**
+3.  **Configure as Variáveis de Ambiente**
+    _Copie o arquivo de exemplo e configure suas credenciais do Firebase._
+
+    ```bash
+    cp .env.example .env
+    ```
+    
+    Edite o arquivo `.env` e preencha com suas credenciais do Firebase Console:
+    ```bash
+    EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key_here
+    EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+    EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+    # ... outras variáveis
+    ```
+
+4.  **Inicie o Servidor de Desenvolvimento do Expo**
 
     ```bash
     npx expo start
     ```
 
-4.  **Execute em um Dispositivo ou Emulador**
+5.  **Execute em um Dispositivo ou Emulador**
     - Instale o aplicativo **Expo Go** no seu celular (iOS ou Android).
     - Escaneie o QR code que aparece no terminal com o app Expo Go.
     - Alternativamente, pressione `a` no terminal para abrir em um emulador Android ou `i` para um simulador iOS.
+
+---
+
+## 🔐 Configuração do Firebase
+
+Este projeto utiliza Firebase para autenticação e armazenamento de dados. Para configurar:
+
+1. Crie um projeto no [Firebase Console](https://console.firebase.google.com/)
+2. Ative Authentication (Email/Password e Anonymous)
+3. Ative Firestore Database
+4. Copie as credenciais do projeto para o arquivo `.env`
+
+**⚠️ Importante:** Nunca commite o arquivo `.env` com suas credenciais. Use sempre o `.env.example` como referência.
 
 ---
 
