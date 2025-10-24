@@ -1,3 +1,4 @@
+import { useAuth } from "@/context/AuthContext";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -56,6 +57,7 @@ export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const { gameProgress } = useGameProgress(); // progresso global
+  const { logout, user } = useAuth(); // Hook para autenticação
 
   // Intercepta o botão físico de voltar do Android
   useFocusEffect(
@@ -229,7 +231,6 @@ export default function Home() {
   );
 }
 
-// Seus estilos (NÃO FORAM ALTERADOS)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -282,5 +283,21 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontFamily: "TTMilksCasualPie",
     fontWeight: "bold",
+  },
+  // Estilos temporários para o botão de logout
+  logoutButton: {
+    position: "absolute",
+    top: 60,
+    right: 20,
+    backgroundColor: "rgba(255, 0, 0, 0.7)",
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    zIndex: 1000,
+  },
+  logoutText: {
+    color: "#fff",
+    fontSize: 14,
+    fontFamily: "TTMilksCasualPie",
   },
 });

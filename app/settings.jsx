@@ -1,4 +1,5 @@
 import {
+  Alert,
   Dimensions,
   Image,
   ImageBackground,
@@ -13,15 +14,41 @@ import { router } from "expo-router";
 import React from "react";
 import BackButton from "../components/backbutton";
 import PinkButton from "../components/pinkbutton";
-// import { Button } from "../components/button/buttons";
-// import { Input } from "../components/input/input";
+
+import { useAuth } from "@/context/AuthContext";
 
 const { width } = Dimensions.get("window");
 
 export default function Settings() {
+  const { logout } = useAuth(); // Hook do contexto de autenticação
+
   function goToScreen(screenName) {
     router.navigate(`./${screenName}`);
   }
+
+  // Função para fazer logout
+  const handleLogout = async () => {
+    Alert.alert("Logout", "Tem certeza que deseja sair?", [
+      {
+        text: "Cancelar",
+        style: "cancel",
+      },
+      {
+        text: "Sair",
+        onPress: async () => {
+          console.log("🚪 Iniciando logout...");
+          const result = await logout();
+          if (result.success) {
+            console.log("✅ Logout realizado com sucesso");
+            router.replace("/login"); // Redireciona para a tela de login após logout
+          } else {
+            console.error("❌ Erro no logout:", result.error);
+            Alert.alert("Erro", "Não foi possível fazer logout. Tente novamente.");
+          }
+        },
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -87,6 +114,7 @@ export default function Settings() {
               backgroundColor: "#ff78cb",
             }}
           />
+          
 
           <Text style={styles.subTitle}>Quem Somos?</Text>
 
@@ -95,6 +123,7 @@ export default function Settings() {
           <PinkButton
             title="SAIR"
             style={{ backgroundColor: "#ff0734", paddingVertical: 10 }}
+            onPress={handleLogout}
           />
         </View>
       </ImageBackground>

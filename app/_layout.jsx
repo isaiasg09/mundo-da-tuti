@@ -1,3 +1,4 @@
+import { AuthProvider } from "@/context/AuthContext";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -34,18 +35,20 @@ export default function RootLayout() {
   }
 
   return (
-    <GameProvider>
-      <RegistrationProvider>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            navigationBarHidden: true,
-            statusBarHidden: true,
-          }}
-        >
-          <Stack.Screen name="index" />
-        </Stack>
-      </RegistrationProvider>
-    </GameProvider>
+    <AuthProvider>
+      <GameProvider>
+        <RegistrationProvider>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              navigationBarHidden: true,
+              statusBarHidden: true,
+            }}
+          >
+            <Stack.Screen name="index" />
+          </Stack>
+        </RegistrationProvider>
+      </GameProvider>
+    </AuthProvider>
   );
 }

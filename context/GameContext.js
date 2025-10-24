@@ -1,19 +1,15 @@
 // context/GameContext.js
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
-import { PATH_ORDER } from "../constants/paths";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import GameProgressService from "../services/gameProgressService";
+import { useAuth } from "./AuthContext";
 
-const STORAGE_KEY = "@mdt:progress:v1";
-
-const DONT_RESET_PROGRESS_ON_START = true;
-
+// Progresso inicial (mesmo para todas as crianças)
 const initialGameProgress = {
   paths: {
-    // Caminho do Castelo
     castelo: {
-      status: "unlocked", // O caminho em si está desbloqueado
+      status: "unlocked",
       games: {
-        // O status de cada um dos 6 jogos dentro deste caminho
-        game1: { status: "unlocked" }, // O primeiro jogo (FishGame) começa desbloqueado
+        game1: { status: "unlocked" },
         game2: { status: "locked" },
         game3: { status: "locked" },
         game4: { status: "locked" },
@@ -21,11 +17,10 @@ const initialGameProgress = {
         game6: { status: "locked" },
       },
     },
-    // Próximo caminho principal
     molusco_perola: {
-      status: "locked", // Começa bloqueado
+      status: "locked",
       games: {
-        game1: { status: "unlocked" }, // O primeiro jogo deste caminho começa desbloqueado
+        game1: { status: "locked" },
         game2: { status: "locked" },
         game3: { status: "locked" },
         game4: { status: "locked" },
@@ -36,319 +31,319 @@ const initialGameProgress = {
       },
     },
     anemona: {
-      status: "locked", // Começa bloqueado
+      status: "locked",
       games: {
-        game1: { status: "unlocked" },
+        game1: { status: "locked" },
         game2: { status: "locked" },
         game3: { status: "locked" },
         game4: { status: "locked" },
       },
     },
   },
+  overall_progress: {
+    total_games_completed: 0,
+    last_played: null,
+  },
 };
-const GameContext = createContext({
-  gameProgress: initialGameProgress,
-  setGameProgress: (data) => {},
-});
 
-const STATUS = { LOCKED: "locked", UNLOCKED: "unlocked", COMPLETED: "completed" };
+const GameContext = createContext();
 
 export const GameProvider = ({ children }) => {
-  const [gameProgress, setGameProgressState] = useState(initialGameProgress);
-  const asyncStorageRef = useRef(null);
-  const saveTimer = useRef(null);
+  const [gameProgress, setGameProgress] = useState(initialGameProgress);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentChildId, setCurrentChildId] = useState(null); // Sem ID padrão
+  const { user, isAuthenticated } = useAuth();
+  const [gameService] = useState(new GameProgressService());
 
-  // Deep merge util (objects only)
-  const deepMerge = (target, source) => {
-    const out = Array.isArray(target) ? [...target] : { ...target };
-    if (!source) return out;
-    Object.keys(source).forEach((key) => {
-      const srcVal = source[key];
-      const tgtVal = out[key];
-      if (srcVal && typeof srcVal === "object" && !Array.isArray(srcVal)) {
-        out[key] = deepMerge(tgtVal || {}, srcVal);
-      } else {
-        out[key] = srcVal;
-      }
-    });
-    return out;
-  };
-
-  // Lazy-load AsyncStorage and hydrate saved progress
+  // Carregar primeira criança automaticamente quando usuário faz login
   useEffect(() => {
-    (async () => {
-      console.log("📱 Carregando progresso do AsyncStorage...");
+    if (isAuthenticated && user && !currentChildId) {
+      console.log("� Usuário logado, buscando primeira criança...");
+      loadFirstChild();
+    } else if (!isAuthenticated) {
+      console.log("🚪 Usuário não logado, usando progresso inicial");
+      setCurrentChildId(null);
+      setGameProgress(initialGameProgress);
+      setIsLoading(false);
+    }
+  }, [isAuthenticated, user]);
 
-      try {
-        const mod = await import("@react-native-async-storage/async-storage");
-        asyncStorageRef.current = mod.default;
+  // Carregar progresso quando usuário/criança mudam
+  useEffect(() => {
+    if (isAuthenticated && user && currentChildId) {
+      console.log(
+        `🔄 Carregando progresso - Usuário: ${user.uid}, Criança: ${currentChildId}`
+      );
+      loadProgressFromFirebase();
+    }
+  }, [isAuthenticated, user, currentChildId]);
 
-        // Se não deve manter progresso, limpa o storage
-        if (!DONT_RESET_PROGRESS_ON_START) {
-          await asyncStorageRef.current.removeItem(STORAGE_KEY);
-          console.log("🗑️ Progresso resetado");
-          return;
-        }
-
-        const raw = await asyncStorageRef.current.getItem(STORAGE_KEY);
-
-        if (raw) {
-          console.log("💾 Progresso encontrado no AsyncStorage:", raw);
-          const parsed = JSON.parse(raw);
-          // Merge with initial to keep any new keys introduced by updates
-          setGameProgressState((prev) => {
-            const merged = deepMerge(prev, parsed);
-            console.log(
-              "🔄 Progresso carregado e mesclado:",
-              JSON.stringify(merged, null, 2)
-            );
-            return merged;
-          });
-        } else {
-          console.log("📝 Nenhum progresso salvo encontrado, usando inicial");
-        }
-      } catch (e) {
-        console.warn(
-          "AsyncStorage indisponível (modo dev ou dependência não instalada). Progresso será mantido apenas em memória.",
-          e
+  // Carregar primeira criança disponível
+  const loadFirstChild = async () => {
+    try {
+      const profiles = await gameService.getChildrenProfiles(user.uid);
+      if (profiles.length > 0) {
+        const firstChild = profiles[0];
+        console.log(
+          `👶 Primeira criança encontrada: ${firstChild.id} (${firstChild.name})`
         );
+        setCurrentChildId(firstChild.id);
+      } else {
+        console.log("⚠️ Nenhum perfil de criança encontrado");
+        setIsLoading(false);
       }
-    })();
-  }, []);
+    } catch (error) {
+      console.error("❌ Erro ao carregar primeira criança:", error);
+      setIsLoading(false);
+    }
+  };
 
-  // Debounced persist whenever gameProgress changes
+  // Configurar listener em tempo real quando há usuário logado
   useEffect(() => {
-    if (!asyncStorageRef.current) return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
-      try {
-        console.log("💾 Salvando progresso no AsyncStorage...");
-        await asyncStorageRef.current.setItem(STORAGE_KEY, JSON.stringify(gameProgress));
-        console.log("✅ Progresso salvo com sucesso");
-      } catch (e) {
-        console.warn("❌ Falha ao salvar progresso localmente:", e?.message);
-      }
-    }, 300);
-    return () => saveTimer.current && clearTimeout(saveTimer.current);
-  }, [gameProgress]);
+    if (isAuthenticated && currentChildId && user) {
+      console.log(`🔗 Configurando listener para criança ${currentChildId}`);
 
-  const handleSetGameProgress = (newData) => {
-    // Lógica de merge profundo para atualizar estados aninhados sem apagar dados
-    setGameProgressState((prevProgress) => {
-      // Cria uma cópia profunda do estado anterior para evitar mutações diretas
-      const newProgress = JSON.parse(JSON.stringify(prevProgress));
-
-      // Itera sobre os caminhos que estão sendo atualizados (ex: 'castelo')
-      for (const pathKey in newData.paths) {
-        if (newProgress.paths[pathKey]) {
-          // Se o caminho existe no estado
-
-          const pathData = newData.paths[pathKey];
-
-          // Se a atualização contém um objeto 'games'...
-          if (pathData.games) {
-            // ...mescla o objeto 'games' antigo com o novo!
-            // Isso mantém os jogos que não foram atualizados (game4, game5, etc.)
-            // e atualiza os que foram (game2, game3).
-            pathData.games = {
-              ...newProgress.paths[pathKey].games, // <-- A MÁGICA ACONTECE AQUI
-              ...pathData.games,
-            };
+      const unsubscribe = gameService.subscribeToProgress(
+        user.uid,
+        currentChildId,
+        (result) => {
+          if (result.success) {
+            console.log(`📡 Progresso sincronizado para criança ${currentChildId}`);
+            setGameProgress(result.data);
+          } else {
+            console.log(
+              `⚠️ Erro no listener para criança ${currentChildId}:`,
+              result.error
+            );
           }
-
-          // Mescla os dados atualizados do caminho (incluindo o 'games' mesclado)
-          newProgress.paths[pathKey] = {
-            ...newProgress.paths[pathKey],
-            ...pathData,
-          };
         }
-      }
-      return newProgress;
-    });
-  };
+      );
 
-  const getGameKey = (index) => `game${index}`; // index 1-based
-
-  const getLevelIndex1Based = (gameKey) => {
-    // Extrai o número do gameKey (ex: "game3" -> 3)
-    return parseInt(gameKey.replace("game", ""), 10);
-  };
-
-  const isLevelLocked = (pathId, levelIndex1Based) => {
-    const gameKey = getGameKey(levelIndex1Based);
-    return gameProgress.paths?.[pathId]?.games?.[gameKey]?.status === STATUS.LOCKED;
-  };
-
-  const updateGameStatus = (pathId, gameKey, newStatus) => {
-    handleSetGameProgress({
-      paths: {
-        [pathId]: {
-          games: {
-            [gameKey]: { status: newStatus },
-          },
-        },
-      },
-    });
-  };
-
-  // Se o ultimo nível do caminho foi completado, desbloqueia o próximo nível (mas não próximo caminho)
-  const unlockNextLevel = (pathId, currentLevelIndex1Based) => {
-    const nextKey = getGameKey(currentLevelIndex1Based + 1);
-    const games = gameProgress.paths?.[pathId]?.games;
-
-    if (games && games[nextKey] && games[nextKey].status === STATUS.LOCKED) {
-      console.log(`🔓 Desbloqueando próximo nível: ${pathId}.${nextKey}`);
-      updateGameStatus(pathId, nextKey, STATUS.UNLOCKED);
+      return () => {
+        if (unsubscribe) {
+          gameService.unsubscribeFromProgress();
+        }
+      };
     }
-    // Removido o desbloqueio automático do próximo caminho - agora é feito pelo baú
+  }, [isAuthenticated, currentChildId, user]);
+
+  // Carregar progresso do Firebase
+  const loadProgressFromFirebase = async () => {
+    if (!user || !currentChildId) {
+      console.log("❌ Usuário ou criança não definidos");
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      console.log(
+        `📥 Carregando progresso - Usuário: ${user.uid}, Criança: ${currentChildId}`
+      );
+
+      const result = await gameService.loadProgressFromFirebase(user.uid, currentChildId);
+
+      if (result.success) {
+        console.log(`✅ Progresso carregado para criança ${currentChildId}`);
+        setGameProgress(result.data);
+      } else {
+        console.log(
+          `⚠️ Erro ao carregar progresso para criança ${currentChildId}:`,
+          result.error
+        );
+        setGameProgress(initialGameProgress);
+      }
+    } catch (error) {
+      console.error(
+        `❌ Erro ao carregar progresso para criança ${currentChildId}:`,
+        error
+      );
+      setGameProgress(initialGameProgress);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Verifica se deve desbloquear o próximo caminho após completar o último jogo do caminho atual
-  const checkAndUnlockNextPath = (pathId, currentLevelIndex1Based) => {
-    // Definir quantos jogos cada caminho tem
-    const pathGameCounts = {
-      castelo: 6,
-      molusco_perola: 8,
-      anemona: 4,
-    };
+  // Função principal para completar jogo
+  const completeGame = async (pathKey, gameKeyOrIndex, score = 0) => {
+    console.log(
+      `[GameContext] completeGame called with pathKey=${pathKey}, gameKeyOrIndex=${gameKeyOrIndex}, score=${score}`
+    );
 
-    // Usar a ordem dos caminhos importada
-    const pathOrder = PATH_ORDER;
+    if (!user || !currentChildId) {
+      console.log("⚠️ Usuário não logado ou criança não selecionada");
+      return { success: false, error: "Usuário não logado" };
+    }
 
-    const currentPathIndex = pathOrder.indexOf(pathId);
-    const isLastGameOfPath = currentLevelIndex1Based === pathGameCounts[pathId];
+    try {
+      // Converte gameKey (ex: "game1") para gameIndex (ex: 1) se necessário
+      let gameIndex;
+      if (typeof gameKeyOrIndex === "string" && gameKeyOrIndex.startsWith("game")) {
+        gameIndex = parseInt(gameKeyOrIndex.replace("game", ""));
+      } else {
+        gameIndex = gameKeyOrIndex;
+      }
 
-    // Se é o último jogo do caminho atual E há um próximo caminho
-    if (isLastGameOfPath && currentPathIndex < pathOrder.length - 1) {
-      const nextPathId = pathOrder[currentPathIndex + 1];
-      const nextPathStatus = gameProgress.paths?.[nextPathId]?.status;
+      console.log(
+        `🎯 Completando jogo - Criança: ${currentChildId}, ${pathKey}/game${gameIndex}, Score: ${score}`
+      );
 
-      if (nextPathStatus === STATUS.LOCKED) {
-        console.log(`🎉 Desbloqueando próximo caminho: ${nextPathId}`);
-        handleSetGameProgress({
-          paths: {
-            [nextPathId]: {
-              status: STATUS.UNLOCKED,
-            },
-          },
+      const result = await gameService.completeGame(
+        user.uid,
+        currentChildId,
+        pathKey,
+        gameIndex,
+        score
+      );
+
+      if (result.success) {
+        console.log(`✅ Jogo completado para criança ${currentChildId}`);
+        // O listener em tempo real atualizará o estado automaticamente
+        return result;
+      } else {
+        console.error(
+          `❌ Erro ao completar jogo para criança ${currentChildId}:`,
+          result.error
+        );
+        return result;
+      }
+    } catch (error) {
+      console.error(
+        `❌ Erro inesperado ao completar jogo para criança ${currentChildId}:`,
+        error
+      );
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Função para trocar de criança ativa
+  const setActiveChild = (childId) => {
+    console.log(`👶 Trocando criança ativa para: ${childId}`);
+    setCurrentChildId(childId);
+    // O useEffect carregará automaticamente o progresso da nova criança
+  };
+
+  // Função para listar crianças reais do Firebase
+  const getAvailableChildren = async () => {
+    if (!user) return [];
+
+    try {
+      // Busca todos os perfis de crianças salvos no Firebase para este guardião
+      const profiles = await GameProgressService.getChildrenProfiles(user.uid);
+      return profiles;
+    } catch (error) {
+      console.error("❌ Erro ao buscar perfis de crianças:", error);
+      return [];
+    }
+  };
+
+  const value = {
+    gameProgress,
+    setGameProgress,
+    completeGame,
+    completeLevel: completeGame, // Alias para compatibilidade com useLevelNavigation
+    markLevelCompleted: completeGame, // Alias para markCompleted no useLevelNavigation
+    isLevelLocked: (pathKey, levelIndex1Based) => {
+      const gameKey = `game${levelIndex1Based}`;
+      const gameStatus = gameProgress.paths[pathKey]?.games[gameKey]?.status;
+      return gameStatus === "locked" || !gameStatus;
+    },
+    isLoading,
+    currentChildId,
+    setActiveChild,
+    getAvailableChildren,
+
+    // Funções de utilidade
+    isGameUnlocked: (pathKey, gameKey) => {
+      return (
+        gameProgress.paths[pathKey]?.games[gameKey]?.status === "unlocked" ||
+        gameProgress.paths[pathKey]?.games[gameKey]?.status === "completed"
+      );
+    },
+    isPathUnlocked: (pathKey) => {
+      return (
+        gameProgress.paths[pathKey]?.status === "unlocked" ||
+        gameProgress.paths[pathKey]?.status === "completed"
+      );
+    },
+    getTotalGamesCompleted: () => {
+      let total = 0;
+      Object.values(gameProgress.paths).forEach((path) => {
+        Object.values(path.games).forEach((game) => {
+          if (game.status === "completed") total++;
         });
-      }
-    }
-  };
+      });
+      return total;
+    },
 
-  const markLevelCompleted = (pathId, levelIndex1Based) => {
-    const key = getGameKey(levelIndex1Based);
-    const current = gameProgress.paths?.[pathId]?.games?.[key];
-    if (!current || current.status === STATUS.COMPLETED) {
-      return; // já concluído ou não existe
-    }
+    // Verificar se um path foi completado (todos os jogos finalizados)
+    isPathCompleted: (pathKey) => {
+      const path = gameProgress.paths[pathKey];
+      if (!path || !path.games) return false;
 
-    console.log(`✅ Completando nível: ${pathId}.${key}`);
-    updateGameStatus(pathId, key, STATUS.COMPLETED);
-    unlockNextLevel(pathId, levelIndex1Based);
-  };
+      const games = Object.values(path.games);
+      if (games.length === 0) return false;
 
-  const completeLevel = (pathId, gameKey) => {
-    const levelIndex = getLevelIndex1Based(gameKey);
-    console.log(`🎯 Completando jogo: ${pathId}.${gameKey}`);
+      // Todos os jogos devem estar completados
+      return games.every((game) => game.status === "completed");
+    },
 
-    // Marca o nível como completado
-    updateGameStatus(pathId, gameKey, STATUS.COMPLETED);
-
-    // Desbloqueia o próximo nível
-    unlockNextLevel(pathId, levelIndex);
-  };
-
-  // Verifica se um caminho foi completamente finalizado (todos os jogos completos)
-  const isPathCompleted = (pathId) => {
-    // Mapear pathId para os IDs internos se necessário
-    const pathMapping = {
-      first: "castelo",
-      second: "molusco_perola",
-      third: "anemona",
-    };
-
-    const internalPathId = pathMapping[pathId] || pathId;
-
-    const pathGameCounts = {
-      castelo: 6,
-      molusco_perola: 8,
-      anemona: 4,
-    };
-
-    const totalGames = pathGameCounts[internalPathId];
-    if (!totalGames) return false;
-
-    const games = gameProgress.paths?.[internalPathId]?.games;
-    if (!games) return false;
-
-    // Verificar se todos os jogos estão completos
-    for (let i = 1; i <= totalGames; i++) {
-      const gameKey = getGameKey(i);
-      if (games[gameKey]?.status !== STATUS.COMPLETED) {
+    // Desbloquear próximo path via baú de recompensa
+    unlockNextPathViaChest: async (pathKey) => {
+      if (!user || !currentChildId) {
+        console.log("⚠️ Usuário não logado ou criança não selecionada");
         return false;
       }
-    }
-    return true;
-  };
 
-  // Função para o baú desbloquear o próximo caminho
-  const unlockNextPathViaChest = (pathId) => {
-    // Mapear pathId para os IDs internos se necessário
-    const pathMapping = {
-      first: "castelo",
-      second: "molusco_perola",
-      third: "anemona",
-    };
+      // Mapear qual é o próximo path
+      const pathOrder = {
+        castelo: "molusco_perola",
+        molusco_perola: "anemona",
+        anemona: null, // último path
+      };
 
-    const internalPathId = pathMapping[pathId] || pathId;
-
-    const pathOrder = PATH_ORDER;
-    const currentPathIndex = pathOrder.indexOf(internalPathId);
-
-    if (currentPathIndex < pathOrder.length - 1) {
-      const nextPathId = pathOrder[currentPathIndex + 1];
-      const nextPathStatus = gameProgress.paths?.[nextPathId]?.status;
-
-      if (nextPathStatus === STATUS.LOCKED) {
-        console.log(`🎉 Desbloqueando próximo caminho via baú: ${nextPathId}`);
-        handleSetGameProgress({
-          paths: {
-            [nextPathId]: {
-              status: STATUS.UNLOCKED,
-            },
-          },
-        });
-        return nextPathId; // Retorna o caminho desbloqueado para mostrar na mensagem
+      const nextPathKey = pathOrder[pathKey];
+      if (!nextPathKey) {
+        console.log("📍 Este é o último path, não há próximo para desbloquear");
+        return false;
       }
-    }
-    return null;
+
+      try {
+        console.log(`🔓 Desbloqueando próximo path: ${nextPathKey}`);
+
+        // Usar o GameProgressService para desbloquear o próximo path
+        const result = await gameService.unlockPath(
+          user.uid,
+          currentChildId,
+          nextPathKey
+        );
+
+        if (result.success) {
+          console.log(`✅ Path ${nextPathKey} desbloqueado com sucesso`);
+          // O listener em tempo real atualizará o estado automaticamente
+          return true;
+        } else {
+          console.error(`❌ Erro ao desbloquear path ${nextPathKey}:`, result.error);
+          return false;
+        }
+      } catch (error) {
+        console.error(`❌ Erro inesperado ao desbloquear path ${nextPathKey}:`, error);
+        return false;
+      }
+    },
   };
 
-  return (
-    <GameContext.Provider
-      value={{
-        gameProgress,
-        setGameProgress: handleSetGameProgress,
-        isLevelLocked,
-        markLevelCompleted,
-        unlockNextLevel,
-        completeLevel,
-        getGameKey,
-        getLevelIndex1Based,
-        isPathCompleted,
-        unlockNextPathViaChest,
-      }}
-    >
-      {children}
-    </GameContext.Provider>
-  );
+  return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };
 
+// Hook personalizado para usar o contexto
 export const useGameProgress = () => {
   const context = useContext(GameContext);
-  if (context === undefined) {
-    throw new Error("useGameProgress deve ser usado dentro de um GameProvider");
+  if (!context) {
+    throw new Error("useGameProgress deve ser usado dentro de GameProvider");
   }
   return context;
 };
+
+// Exportar também como useGame para compatibilidade
+export const useGame = useGameProgress;
