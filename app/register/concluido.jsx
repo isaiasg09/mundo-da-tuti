@@ -1,30 +1,36 @@
-import React, { useRef, useEffect } from "react";
 import { router } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
+  Alert,
+  Dimensions,
   Image,
   ImageBackground,
   ScrollView,
-  Dimensions,
-  Touchable,
+  Text,
   TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import ConfettiCannon from "react-native-confetti-cannon";
 
 import BackButton from "@/components/backbutton";
-import DefaultInput from "@/components/defaultinput";
 import PinkButton from "@/components/pinkbutton";
+import { useRegistration } from "@/context/RegistrationContext";
+
 const { width: screenWidth } = Dimensions.get("window");
 
 export default function Concluido() {
   const confettiRef = useRef(null); // Referência para o ConfettiCannon
+  const { submitRegistration, isLoading, error, registrationData } = useRegistration();
+  const [registrationCompleted, setRegistrationCompleted] = useState(false);
 
   // Dispara os confetes automaticamente quando a tela carrega
   useEffect(() => {
     if (confettiRef.current) {
       confettiRef.current.start();
     }
+
+    // Registrar automaticamente quando a tela carregar
+    handleRegistration();
   }, []); // Array de dependências vazio para rodar apenas uma vez na montagem
 
   // Nova função para disparar os confetes quando a imagem for clicada
@@ -32,6 +38,71 @@ export default function Concluido() {
     if (confettiRef.current) {
       confettiRef.current.start(); // Inicia a animação de confetes
     }
+  };
+
+  // Função para registrar no Firebase
+  const handleRegistration = async () => {
+    if (registrationCompleted) return; // Evita registro duplicado
+
+    try {
+      console.log("Iniciando registro no Firebase com dados:", registrationData);
+      const result = await submitRegistration();
+
+      if (result.success) {
+        console.log("Registro concluído com sucesso! Guardian ID:", result.guardianId);
+        setRegistrationCompleted(true);
+        // Disparar confetes adicionais quando o registro for bem-sucedido
+        setTimeout(() => {
+          if (confettiRef.current) {
+            confettiRef.current.start();
+          }
+        }, 1000);
+      } else {
+        console.error("Erro no registro:", result.error);
+        Alert.alert(
+          "Erro no Cadastro",
+          `Não foi possível concluir o cadastro: ${result.error}`,
+          [
+            {
+              text: "Tentar Novamente",
+              onPress: () => setRegistrationCompleted(false),
+            },
+            {
+              text: "Cancelar",
+              onPress: () => router.back(),
+              style: "cancel",
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error("Erro inesperado no registro:", error);
+      Alert.alert("Erro Inesperado", "Ocorreu um erro inesperado. Tente novamente.", [
+        {
+          text: "Tentar Novamente",
+          onPress: () => setRegistrationCompleted(false),
+        },
+        {
+          text: "Cancelar",
+          onPress: () => router.back(),
+          style: "cancel",
+        },
+      ]);
+    }
+  };
+
+  // Função para começar a aventura
+  const handleStartAdventure = () => {
+    if (!registrationCompleted && !isLoading) {
+      Alert.alert(
+        "Cadastro em Andamento",
+        "Aguarde a conclusão do cadastro antes de continuar.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    router.navigate("/home");
   };
 
   return (
@@ -69,18 +140,21 @@ export default function Concluido() {
             textAlign: "center",
           }}
         >
-          Cadastro concluido
+          {isLoading ? "Finalizando cadastro..." : "Cadastro concluído"}
         </Text>
         <Text
           style={{
             fontSize: 18,
             color: "rgba(72, 137, 157, 0.81)",
             fontFamily: "TTMilksCasualPie",
-            // marginTop: 20,
             textAlign: "center",
           }}
         >
-          Bem vindo(a) ao mundo da tuti!
+          {isLoading
+            ? "Aguarde, estamos criando sua conta..."
+            : registrationCompleted
+              ? "Bem vindo(a) ao mundo da tuti!"
+              : "Finalizando seu cadastro..."}
         </Text>
 
         <TouchableWithoutFeedback onPress={fireConfetti}>
@@ -97,9 +171,14 @@ export default function Concluido() {
         </TouchableWithoutFeedback>
 
         <PinkButton
-          title={"começar a aventura!"}
-          onPress={() => router.navigate("/home")}
-          style={{ marginTop: "10%", width: "100%" }}
+          title={isLoading ? "Criando conta..." : "começar a aventura!"}
+          onPress={handleStartAdventure}
+          style={{
+            marginTop: "10%",
+            width: "100%",
+            opacity: isLoading || !registrationCompleted ? 0.6 : 1,
+          }}
+          disabled={isLoading || !registrationCompleted}
         />
 
         {/* Canhão de Confetes! */}

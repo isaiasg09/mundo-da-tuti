@@ -16,6 +16,7 @@ import BackButton from "../components/backbutton";
 import ProgressBar from "../components/progressbar"; // Importe sua ProgressBar
 import WinScreen from "../components/winscreen";
 import { GAME_DIFFICULTY_CONFIG } from "../constants/gameConfig"; // Importa nossa configuração
+import { useGameProgress } from "../context/GameContext";
 import { useLevelNavigation } from "../hooks/useLevelNavigation";
 
 const TOTAL_ROUNDS = 5;
@@ -60,6 +61,7 @@ export default function PlusGame() {
     gameType = "soma", // Pega o parâmetro de tipo de jogo da rota. Se nenhum for passado, ele assume 'soma' como padrão.
   } = useLocalSearchParams();
   const { onWinMarkOnly, openNext, openMap, completeLevel } = useLevelNavigation(pathId);
+  const { completeGame } = useGameProgress();
 
   // Pega as configurações para a dificuldade atual
   const config = GAME_DIFFICULTY_CONFIG[gameType][difficulty];
@@ -73,41 +75,39 @@ export default function PlusGame() {
   const [correctAnswersCount, setCorrectAnswersCount] = useState(0);
   const [isGameWon, setIsGameWon] = useState(false);
 
-  // Log para monitorar mudanças de estado
-  useEffect(() => {
-    console.log(`[PlusGame] isGameWon changed to: ${isGameWon}`);
-  }, [isGameWon]);
-
-  useEffect(() => {
-    console.log(`[PlusGame] correctAnswersCount changed to: ${correctAnswersCount}`);
-  }, [correctAnswersCount]);
-
   // Efeito para iniciar o jogo
   useEffect(() => {
     generateNewQuestion();
   }, []);
 
-  // Efeito para verificar se o jogo foi ganho e marcar como completo
+  // Efeito para verificar se o jogo foi ganho e marcar como completo com Firebase sync
   useEffect(() => {
-    if (isGameWon) {
-      console.log(`[PlusGame] Game won! pathId=${pathId}, gameId=${gameId}`);
-      // marca conclusão uma única vez
-      const current = Number(gameId);
-      if (!markedRef.current && current) {
-        console.log(`[PlusGame] Calling onWinMarkOnly with level: ${current}`);
-        onWinMarkOnly(current);
+    if (isGameWon && !markedRef.current) {
+      const gameIndex = Number(gameId);
+      if (gameIndex && pathId) {
+        console.log(`[PlusGame] Completando jogo com sync: ${pathId}.game${gameIndex}`);
+
+        const completeWithScore = async () => {
+          try {
+            const result = await completeGame(pathId, gameIndex, correctAnswersCount);
+            if (result?.success) {
+              console.log(`[PlusGame] ✅ Jogo completado e sincronizado!`);
+            }
+          } catch (error) {
+            console.error("[PlusGame] ❌ Erro ao completar jogo:", error);
+            onWinMarkOnly(gameIndex);
+          }
+        };
+
+        completeWithScore();
         markedRef.current = true;
-      } else {
-        console.log(
-          `[PlusGame] Not calling onWinMarkOnly - markedRef.current=${markedRef.current}, current=${current}`
-        );
       }
       // Inicia confetti se disponível
       if (confettiRef.current) {
         setTimeout(() => confettiRef.current.start(), 100);
       }
     }
-  }, [isGameWon, gameId, onWinMarkOnly]);
+  }, [isGameWon, gameId, pathId, completeGame, correctAnswersCount, onWinMarkOnly]);
 
   // Lógica para gerar uma nova questão
   const generateNewQuestion = () => {
@@ -146,31 +146,22 @@ export default function PlusGame() {
     if (selectedAnswer !== null) return; // Impede múltiplos cliques
 
     const correct = num1 + num2;
-    console.log(
-      `[PlusGame] Answer pressed: value=${value}, correct=${correct}, match=${Number(value) === correct}`
-    );
     setSelectedAnswer(value); // Define a resposta selecionada para dar feedback visual
 
     if (Number(value) === correct) {
       // Se a resposta está CORRETA
       const newScore = correctAnswersCount + 1;
-      console.log(
-        `[PlusGame] Correct answer! newScore=${newScore}, TOTAL_ROUNDS=${TOTAL_ROUNDS}`
-      );
       setCorrectAnswersCount(newScore);
 
       setTimeout(() => {
         if (newScore >= TOTAL_ROUNDS) {
-          console.log(`[PlusGame] Game should be won! Setting isGameWon to true`);
           setIsGameWon(true); // Venceu o jogo!
         } else {
-          console.log(`[PlusGame] Generating next question`);
           generateNewQuestion(); // Próxima rodada
         }
       }, 1000); // Atraso de 1 segundo para o jogador ver o feedback
     } else {
       // Se a resposta está ERRADA, apenas mostra o feedback por um tempo e depois reseta
-      console.log(`[PlusGame] Wrong answer`);
       setTimeout(() => {
         setSelectedAnswer(null); // Limpa o feedback de "errado" para o jogador tentar de novo
       }, 1000);

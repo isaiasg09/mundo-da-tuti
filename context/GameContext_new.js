@@ -1,5 +1,5 @@
 // context/GameContext.js
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import GameProgressService from "../services/gameProgressService";
 import { useAuth } from "./AuthContext";
 
@@ -51,22 +51,9 @@ const GameContext = createContext();
 export const GameProvider = ({ children }) => {
   const [gameProgress, setGameProgress] = useState(initialGameProgress);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentChildId, setCurrentChildId] = useState(null); // Sem ID padrão
+  const [currentChildId, setCurrentChildId] = useState("child1"); // ID padrão temporário
   const { user, isAuthenticated } = useAuth();
   const [gameService] = useState(new GameProgressService());
-
-  // Carregar primeira criança automaticamente quando usuário faz login
-  useEffect(() => {
-    if (isAuthenticated && user && !currentChildId) {
-      console.log("� Usuário logado, buscando primeira criança...");
-      loadFirstChild();
-    } else if (!isAuthenticated) {
-      console.log("🚪 Usuário não logado, usando progresso inicial");
-      setCurrentChildId(null);
-      setGameProgress(initialGameProgress);
-      setIsLoading(false);
-    }
-  }, [isAuthenticated, user]);
 
   // Carregar progresso quando usuário/criança mudam
   useEffect(() => {
@@ -75,28 +62,12 @@ export const GameProvider = ({ children }) => {
         `🔄 Carregando progresso - Usuário: ${user.uid}, Criança: ${currentChildId}`
       );
       loadProgressFromFirebase();
-    }
-  }, [isAuthenticated, user, currentChildId]);
-
-  // Carregar primeira criança disponível
-  const loadFirstChild = async () => {
-    try {
-      const profiles = await gameService.getChildrenProfiles(user.uid);
-      if (profiles.length > 0) {
-        const firstChild = profiles[0];
-        console.log(
-          `👶 Primeira criança encontrada: ${firstChild.id} (${firstChild.name})`
-        );
-        setCurrentChildId(firstChild.id);
-      } else {
-        console.log("⚠️ Nenhum perfil de criança encontrado");
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.error("❌ Erro ao carregar primeira criança:", error);
+    } else if (!isAuthenticated) {
+      console.log("🚪 Usuário não logado, usando progresso inicial");
+      setGameProgress(initialGameProgress);
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated, user, currentChildId]);
 
   // Configurar listener em tempo real quando há usuário logado
   useEffect(() => {
@@ -165,25 +136,13 @@ export const GameProvider = ({ children }) => {
   };
 
   // Função principal para completar jogo
-  const completeGame = async (pathKey, gameKeyOrIndex, score = 0) => {
-    console.log(
-      `[GameContext] completeGame called with pathKey=${pathKey}, gameKeyOrIndex=${gameKeyOrIndex}, score=${score}`
-    );
-
+  const completeGame = async (pathKey, gameIndex, score) => {
     if (!user || !currentChildId) {
       console.log("⚠️ Usuário não logado ou criança não selecionada");
       return { success: false, error: "Usuário não logado" };
     }
 
     try {
-      // Converte gameKey (ex: "game1") para gameIndex (ex: 1) se necessário
-      let gameIndex;
-      if (typeof gameKeyOrIndex === "string" && gameKeyOrIndex.startsWith("game")) {
-        gameIndex = parseInt(gameKeyOrIndex.replace("game", ""));
-      } else {
-        gameIndex = gameKeyOrIndex;
-      }
-
       console.log(
         `🎯 Completando jogo - Criança: ${currentChildId}, ${pathKey}/game${gameIndex}, Score: ${score}`
       );
@@ -223,31 +182,20 @@ export const GameProvider = ({ children }) => {
     // O useEffect carregará automaticamente o progresso da nova criança
   };
 
-  // Função para listar crianças reais do Firebase
-  const getAvailableChildren = async () => {
-    if (!user) return [];
-
-    try {
-      // Busca todos os perfis de crianças salvos no Firebase para este guardião
-      const profiles = await GameProgressService.getChildrenProfiles(user.uid);
-      return profiles;
-    } catch (error) {
-      console.error("❌ Erro ao buscar perfis de crianças:", error);
-      return [];
-    }
+  // Função para listar crianças (será útil quando implementarmos seleção de perfil)
+  const getAvailableChildren = () => {
+    // Por enquanto retorna lista estática, no futuro virá do Firebase
+    return [
+      { id: "child1", name: "Maria", avatar: "👧", color: "#FF6B6B" },
+      { id: "child2", name: "João", avatar: "👦", color: "#4ECDC4" },
+      { id: "child3", name: "Ana", avatar: "👧", color: "#45B7D1" },
+    ];
   };
 
   const value = {
     gameProgress,
     setGameProgress,
     completeGame,
-    completeLevel: completeGame, // Alias para compatibilidade com useLevelNavigation
-    markLevelCompleted: completeGame, // Alias para markCompleted no useLevelNavigation
-    isLevelLocked: (pathKey, levelIndex1Based) => {
-      const gameKey = `game${levelIndex1Based}`;
-      const gameStatus = gameProgress.paths[pathKey]?.games[gameKey]?.status;
-      return gameStatus === "locked" || !gameStatus;
-    },
     isLoading,
     currentChildId,
     setActiveChild,
@@ -274,62 +222,6 @@ export const GameProvider = ({ children }) => {
         });
       });
       return total;
-    },
-
-    // Verificar se um path foi completado (todos os jogos finalizados)
-    isPathCompleted: (pathKey) => {
-      const path = gameProgress.paths[pathKey];
-      if (!path || !path.games) return false;
-
-      const games = Object.values(path.games);
-      if (games.length === 0) return false;
-
-      // Todos os jogos devem estar completados
-      return games.every((game) => game.status === "completed");
-    },
-
-    // Desbloquear próximo path via baú de recompensa
-    unlockNextPathViaChest: async (pathKey) => {
-      if (!user || !currentChildId) {
-        console.log("⚠️ Usuário não logado ou criança não selecionada");
-        return false;
-      }
-
-      // Mapear qual é o próximo path
-      const pathOrder = {
-        castelo: "molusco_perola",
-        molusco_perola: "anemona",
-        anemona: null, // último path
-      };
-
-      const nextPathKey = pathOrder[pathKey];
-      if (!nextPathKey) {
-        console.log("📍 Este é o último path, não há próximo para desbloquear");
-        return false;
-      }
-
-      try {
-        console.log(`🔓 Desbloqueando próximo path: ${nextPathKey}`);
-
-        // Usar o GameProgressService para desbloquear o próximo path
-        const result = await gameService.unlockPath(
-          user.uid,
-          currentChildId,
-          nextPathKey
-        );
-
-        if (result.success) {
-          console.log(`✅ Path ${nextPathKey} desbloqueado com sucesso`);
-          // O listener em tempo real atualizará o estado automaticamente
-          return true;
-        } else {
-          console.error(`❌ Erro ao desbloquear path ${nextPathKey}:`, result.error);
-          return false;
-        }
-      } catch (error) {
-        console.error(`❌ Erro inesperado ao desbloquear path ${nextPathKey}:`, error);
-        return false;
-      }
     },
   };
 

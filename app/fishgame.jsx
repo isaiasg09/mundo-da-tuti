@@ -91,7 +91,7 @@ export default function FishGame() {
   // Controla se o jogador já venceu o jogo (para mostrar a tela de sucesso)
   const [isGameWon, setIsGameWon] = useState(false);
 
-  const { gameProgress, setGameProgress } = useGameProgress();
+  const { gameProgress, setGameProgress, completeGame } = useGameProgress();
   const {
     pathId,
     gameId,
@@ -108,24 +108,40 @@ export default function FishGame() {
     generateGame();
   }, []);
 
-  // useEffect para marcar como completo na vitória (desbloqueia próximos níveis)
+  // useEffect para marcar como completo na vitória com Firebase sync
   useEffect(() => {
-    // Se o jogo foi ganho...
-    if (isGameWon) {
-      console.log(`[FishGame] Game won! pathId=${pathId}, gameId=${gameId}`);
-      // Marca como completo imediatamente (desbloqueia próximos níveis)
-      const current = Number(gameId);
-      if (!markedRef.current && current) {
-        console.log(`[FishGame] Calling onWinMarkOnly with level: ${current}`);
-        onWinMarkOnly(current);
+    if (isGameWon && !markedRef.current) {
+      const gameIndex = Number(gameId);
+      if (gameIndex && pathId) {
+        console.log(`[FishGame] Completando jogo com sync: ${pathId}.game${gameIndex}`);
+
+        // Usar a nova função que faz sync com Firebase
+        const completeWithScore = async () => {
+          try {
+            const result = await completeGame(pathId, gameIndex, correctAnswersCount);
+            if (result?.success) {
+              console.log(`[FishGame] ✅ Jogo completado e sincronizado!`);
+              if (result.nextGameUnlocked) {
+                console.log(`[FishGame] 🔓 Próximo jogo desbloqueado!`);
+              }
+              if (result.nextPathUnlocked) {
+                console.log(
+                  `[FishGame] 🎉 Próximo caminho desbloqueado: ${result.nextPathUnlocked}`
+                );
+              }
+            }
+          } catch (error) {
+            console.error("[FishGame] ❌ Erro ao completar jogo:", error);
+            // Fallback para método local
+            onWinMarkOnly(gameIndex);
+          }
+        };
+
+        completeWithScore();
         markedRef.current = true;
-      } else {
-        console.log(
-          `[FishGame] Not calling onWinMarkOnly - markedRef.current=${markedRef.current}, current=${current}`
-        );
       }
     }
-  }, [isGameWon, gameId, onWinMarkOnly]); // Dispara quando isGameWon muda para true
+  }, [isGameWon, gameId, pathId, completeGame, correctAnswersCount, onWinMarkOnly]);
 
   // O container dos peixes pode ser um pouco menor que a altura total para não sobrepor os botões
   const containerHeight = Dimensions.get("window").height * 0.4;

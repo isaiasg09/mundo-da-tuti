@@ -1,25 +1,25 @@
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { StatusBar } from "expo-status-bar";
 import {
-  Text,
-  View,
-  TextInput,
-  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
   Dimensions,
   Image,
-  StyleSheet,
   ImageBackground,
-  Keyboard,
   ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
 // Importações do Reanimated
 import Animated, {
-  useSharedValue,
+  runOnJS,
   useAnimatedStyle,
+  useSharedValue,
   withTiming,
-  runOnJS, // Para executar funções JS a partir da UI thread (ex: setState)
-  // Easing, // Importe se precisar de easings específicos não padrão
 } from "react-native-reanimated";
 
 // Obtém a largura da tela
@@ -36,6 +36,7 @@ export default function Login() {
   const [passwordFocus, setPasswordFocus] = useState(false);
   const [stayConnected, setStayConnected] = useState(false);
   const [isValid, setIsValid] = useState(true); // Estado para controle de validação
+  const [loginError, setLoginError] = useState(""); // Estado para erro de login
 
   // Estado para controlar a visibilidade LÓGICA do pop-up de ajuda
   const [isHelp, setIsHelp] = useState(false);
@@ -43,7 +44,9 @@ export default function Login() {
   const overlayOpacity = useSharedValue(0); // Inicia com 0 (transparente)
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false); // Estado específico para login
   const router = useRouter(); // Hook de navegação do Expo Router
+  const { login } = useAuth(); // Hook do contexto de autenticação
 
   const validateEmail = (text) => {
     const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w\w+)+$/;
@@ -66,24 +69,84 @@ export default function Login() {
   };
 
   const handleNavigateLogin = async () => {
-    if (!validateEmail(Email) || Password.length < 5) {
+    // Reset de estados de erro
+    setIsValid(true);
+    setLoginError("");
+
+    // Validação básica dos campos
+    if (!validateEmail(Email)) {
       setIsValid(false);
-      return; // Se os campos não forem válidos, não prossegue com a navegação
+      setLoginError("Por favor, insira um email válido.");
+      return;
     }
 
-    setIsLoading(true);
+    if (Password.length < 5) {
+      setIsValid(false);
+      setLoginError("A senha deve ter pelo menos 5 caracteres.");
+      return;
+    }
 
-    // 1. Mostra loading
-    router.push("./loading");
+    setIsLoggingIn(true);
 
-    // 2. Pré-carrega a tela destino
-    await import("./home"); // Caminho da próxima tela
+    try {
+      console.log("🔐 Iniciando processo de login...");
+      console.log("📧 Email:", Email);
 
-    // 3. Limpa a pilha de navegação e vai para home (impede voltar para login)
-    router.dismissAll();
-    router.push("./home");
+      // Tenta fazer login usando o contexto de autenticação
+      const result = await login(Email, Password);
 
-    setIsLoading(false);
+      if (result.success) {
+        console.log("✅ Login realizado com sucesso!");
+        console.log("👤 Guardian ID:", result.guardianId);
+
+        // 1. Mostra loading
+        router.push("./loading");
+
+        // 2. Pré-carrega a tela destino
+        await import("./home");
+
+        // 3. Limpa a pilha de navegação e vai para home (impede voltar para login)
+        router.dismissAll();
+        router.push("./home");
+      } else {
+        console.error("❌ Erro no login:", result.error);
+
+        // Trata diferentes tipos de erro do Firebase
+        let errorMessage = "Erro ao fazer login. Tente novamente.";
+
+        if (result.error.includes("user-not-found")) {
+          errorMessage = "Email não encontrado. Verifique o email ou crie uma conta.";
+        } else if (result.error.includes("wrong-password")) {
+          errorMessage = "Senha incorreta. Tente novamente.";
+        } else if (result.error.includes("invalid-email")) {
+          errorMessage = "Email inválido. Verifique o formato do email.";
+        } else if (result.error.includes("too-many-requests")) {
+          errorMessage = "Muitas tentativas. Aguarde um momento e tente novamente.";
+        } else if (result.error.includes("user-disabled")) {
+          errorMessage = "Esta conta foi desabilitada. Entre em contato com o suporte.";
+        } else if (result.error.includes("network-request-failed")) {
+          errorMessage = "Erro de conexão. Verifique sua internet e tente novamente.";
+        }
+
+        setLoginError(errorMessage);
+        setIsValid(false);
+
+        // Mostra alerta para o usuário
+        Alert.alert("Erro no Login", errorMessage, [
+          { text: "OK", onPress: () => console.log("Alerta de erro fechado") },
+        ]);
+      }
+    } catch (error) {
+      console.error("💥 Erro inesperado no login:", error);
+      setLoginError("Erro inesperado. Tente novamente mais tarde.");
+      setIsValid(false);
+
+      Alert.alert("Erro Inesperado", "Ocorreu um erro inesperado. Tente novamente.", [
+        { text: "OK" },
+      ]);
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
   // useEffect para disparar a animação de entrada quando isHelp se torna true
@@ -188,21 +251,37 @@ export default function Login() {
             </View>
           </View>
 
-          {!isValid && (
+          {(!isValid || loginError) && (
             <Text
               style={{
                 color: "red",
                 fontSize: 14,
                 fontFamily: "TTMilksCasualPie",
                 textAlign: "center",
+                marginTop: 10,
+                marginBottom: 10,
+                paddingHorizontal: 20,
               }}
             >
-              Por favor, preencha todos os campos corretamente.
+              {loginError || "Por favor, preencha todos os campos corretamente."}
             </Text>
           )}
 
-          <TouchableOpacity style={styles.button} onPress={handleNavigateLogin}>
-            <Text style={styles.buttonText}>ENTRAR</Text>
+          <TouchableOpacity
+            style={[styles.button, { opacity: isLoggingIn ? 0.7 : 1 }]}
+            onPress={handleNavigateLogin}
+            disabled={isLoggingIn}
+          >
+            {isLoggingIn ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#fff" />
+                <Text style={[styles.buttonText, { marginLeft: 10, fontSize: 24 }]}>
+                  ENTRANDO...
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.buttonText}>ENTRAR</Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -387,6 +466,11 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 28,
     fontFamily: "TTMilksCasualPie",
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   Register: {
     marginTop: 9,

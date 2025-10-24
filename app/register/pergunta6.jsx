@@ -1,16 +1,15 @@
+import BackButton from "@/components/backbutton";
+import ProgressBar from "@/components/progressbar";
+import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
   ImageBackground,
   ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import ProgressBar from "@/components/progressbar";
-import BackButton from "@/components/backbutton";
-import { router } from "expo-router";
 
 import { useRegistration } from "../../context/RegistrationContext";
 
@@ -96,7 +95,7 @@ export default function Pergunta6() {
             disabled={selectedOption === null}
             onPress={() => {
               if (selectedOption !== null) {
-                router.navigate("./customizarperfil");
+                router.navigate("./descricao");
               }
             }}
           >

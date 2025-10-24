@@ -75,13 +75,27 @@ export function useLevelNavigation(pathId) {
 
   // Utilitário para telas de vitória: marca conclusão imediatamente (inclui avanço de caminho no último nível), sem navegar
   function onWinMarkOnly(levelIndex1Based) {
+    console.log(
+      `[useLevelNavigation] onWinMarkOnly called with level: ${levelIndex1Based}, pathId: ${pathId}`
+    );
+
     if (!pathId || !PATHS[pathId]) {
+      console.log(`[useLevelNavigation] Invalid path: pathId=${pathId}`);
       return { ok: false, reason: "invalid-path" };
     }
+
     if (typeof completeLevel === "function") {
       // Convert levelIndex1Based to gameKey format (e.g., 1 -> "game1")
       const gameKey = `game${levelIndex1Based}`;
+      console.log(
+        `[useLevelNavigation] Calling completeLevel with pathId=${pathId}, gameKey=${gameKey}`
+      );
       completeLevel(pathId, gameKey);
+    } else {
+      console.log(
+        `[useLevelNavigation] completeLevel is not a function:`,
+        typeof completeLevel
+      );
     }
     return { ok: true };
   }
