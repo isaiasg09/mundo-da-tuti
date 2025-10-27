@@ -15,18 +15,21 @@ export function useLevelNavigation(pathId) {
   const levelCount = PATHS[pathId]?.length ?? 0;
 
   function openLevel(levelIndex1Based, options = { replace: false }) {
+    // Garantir que seja número
+    const levelNum = Number(levelIndex1Based);
+    
     if (!pathId || !PATHS[pathId]) {
       return { ok: false, reason: "invalid-path" };
     }
 
-    const cfg = getLevelConfig(levelIndex1Based);
+    const cfg = getLevelConfig(levelNum);
     if (!cfg) {
       return { ok: false, reason: "not-found" };
     }
 
     const safeIsLevelLocked =
       typeof isLevelLocked === "function" ? isLevelLocked : () => false;
-    const isLocked = safeIsLevelLocked(pathId, levelIndex1Based);
+    const isLocked = safeIsLevelLocked(pathId, levelNum);
 
     if (isLocked) {
       return { ok: false, reason: "locked" };
@@ -62,13 +65,24 @@ export function useLevelNavigation(pathId) {
       completeLevel(pathId, gameKey);
     }
 
-    const next = levelIndex1Based + 1;
+    // Converter para número para evitar concatenação de strings
+    const currentLevel = Number(levelIndex1Based);
+    const next = currentLevel + 1;
     const res = openLevel(next);
     if (!res || res.ok === false) {
       // Usa a mesma lógica do openMap() para garantir navegação correta
       const screen = PATH_TO_SCREEN[pathId] || "/firstpath";
-      router.dismissAll();
-      router.push({ pathname: screen, params: { pathId } });
+      try {
+        router.dismissAll();
+        // Pequeno delay para garantir que dismissAll() complete antes do push
+        setTimeout(() => {
+          router.push({ pathname: screen, params: { pathId } });
+        }, 100);
+      } catch (error) {
+        console.error("Erro na navegação após completar nível:", error);
+        // Fallback: tentar navegação direta
+        router.push({ pathname: screen, params: { pathId } });
+      }
     }
     return { ok: true };
   }
@@ -104,14 +118,28 @@ export function useLevelNavigation(pathId) {
     const screen = PATH_TO_SCREEN[pathId] || "/firstpath";
     // Navegar de volta para a home primeiro, depois para o mapa
     // Isso garante que o BackButton na tela do mapa leve de volta para a home
-    router.dismissAll();
-    router.push({ pathname: screen, params: { pathId } });
+    try {
+      router.dismissAll();
+      // Pequeno delay para garantir que dismissAll() complete antes do push
+      setTimeout(() => {
+        router.push({ pathname: screen, params: { pathId } });
+      }, 100);
+    } catch (error) {
+      console.error("Erro na navegação para o mapa:", error);
+      // Fallback: tentar navegação direta
+      router.push({ pathname: screen, params: { pathId } });
+    }
   }
 
   function openNext(levelIndex1Based) {
-    const next = levelIndex1Based + 1;
+    // Converter para número para evitar concatenação de strings
+    const currentLevel = Number(levelIndex1Based);
+    const next = currentLevel + 1;
+    
     const res = openLevel(next);
-    if (!res || res.ok === false) openMap();
+    if (!res || res.ok === false) {
+      openMap();
+    }
     return res;
   }
 

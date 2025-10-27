@@ -1,5 +1,5 @@
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   BackHandler,
   Dimensions,
@@ -256,7 +256,7 @@ export default function MemoryGame() {
       if (gameIndex && pathId) {
         const completeWithScore = async () => {
           try {
-            const result = await completeGame(pathId, gameIndex, matchedPairs, {
+            const result = await completeGame(pathId, gameIndex, score, {
               gameType,
             });
           } catch (error) {
@@ -269,7 +269,7 @@ export default function MemoryGame() {
         markedRef.current = true;
       }
     }
-  }, [isGameWon, gameId, pathId, completeGame, matchedPairs, onWinMarkOnly]);
+  }, [isGameWon, gameId, pathId, completeGame, score, onWinMarkOnly]);
 
   // Lógica de virar carta
   const flipCard = (uniqueId) => {

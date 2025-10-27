@@ -1,11 +1,12 @@
+import { logger } from "@/utils/logger";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    Image,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 
 export default function WinScreen({
@@ -86,12 +87,15 @@ export default function WinScreen({
     // Limpar todos os recursos antes de navegar
     cleanupResources();
 
-    // Usar apenas openNext para navegar, pois o nível já foi marcado como completo quando ganhou
+    // Usar openNext do hook para navegar corretamente
     if (openNext && gameId) {
       try {
-        router.push(`/${pathId}?gameId=${nextGameIndex}`);
+        openNext(gameId);
       } catch (e) {
-        onOpenMap();
+        logger.error('Erro ao navegar para próximo nível:', e);
+        if (openMap) {
+          openMap();
+        }
       }
     } else if (onContinue) {
       onContinue();

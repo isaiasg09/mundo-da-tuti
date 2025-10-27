@@ -260,10 +260,9 @@ export default function Perfil() {
         title="GERENCIAR PERFIS"
         onPress={() => router.push("/childSelector")}
         style={{
-          width: "75%",
-          height: 50,
-          padding: 0,
-          paddingHorizontal: 20,
+          // width: "75%",
+          // height: 50,
+          padding: 20,
           elevation: 0,
           backgroundColor: "#ff89d2",
           marginTop: 20,

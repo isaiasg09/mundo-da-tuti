@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   continueButton: {
     marginTop: verticalScale(40),
     width: "100%",
-    height: verticalScale(55),
+    paddingVertical: 20,
     backgroundColor: "#ff66c4",
     elevation: 5,
   },

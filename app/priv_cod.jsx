@@ -235,6 +235,8 @@ export default function Priv_Cod() {
               disabled={isValidating}
               style={{
                 opacity: isValidating ? 0.6 : 1,
+                // width: "50%",
+                padding: 10,
               }}
             />
           </>
