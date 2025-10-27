@@ -1,20 +1,26 @@
-import React, { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
   ImageBackground,
   ScrollView,
+  Text,
   TouchableOpacity,
-  Image,
-  Dimensions,
+  View,
 } from "react-native";
-import { router } from "expo-router";
 
 import BackButton from "@/components/backbutton";
 import DefaultInput from "@/components/defaultinput";
 import PinkButton from "@/components/pinkbutton";
 
-import { useRegistration } from "@/context/RegistrationContext"; // Importa o hook do contexto
+import { useAuth } from "@/context/AuthContext";
+import { useGameProgress } from "@/context/GameContext";
+import { useRegistration } from "@/context/RegistrationContext";
+import GameProgressService from "@/services/gameProgressService";
+import { logger } from "../../utils/logger";
 
 const profileImageOptions = [
   {
@@ -48,21 +54,66 @@ const profileImageOptions = [
 ];
 
 export default function CustomizarPerfil() {
-  // Inicializa o username com o valor do contexto, se existir
-  const { registrationData, setRegistrationData } = useRegistration(); // Hook do contexto
+  const params = useLocalSearchParams();
+  const isEditMode = params.mode === "edit"; // Detecta se é modo edição
+
+  // Hooks condicionais baseados no modo
+  const { registrationData, setRegistrationData } = useRegistration();
+  const { user } = useAuth();
+  const { currentChildId } = useGameProgress();
+
   const { width } = Dimensions.get("window");
-  const [username, setUsername] = useState(registrationData.usuario || "");
+  const [username, setUsername] = useState("");
   const [isUsernameValid, setIsUsernameValid] = useState(true);
+  const [loading, setLoading] = useState(isEditMode);
+  const [saving, setSaving] = useState(false);
+  const [childProfile, setChildProfile] = useState(null);
 
-  // Encontra o índice inicial da imagem com base no que está salvo no contexto
-  const initialImageIndex = profileImageOptions.findIndex(
-    (img) => img.key === registrationData.profileImageKey
-  );
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // Começa com a imagem salva no contexto, se houver
-  const [currentImageIndex, setCurrentImageIndex] = useState(
-    initialImageIndex !== -1 ? initialImageIndex : 0
-  );
+  // Carregar dados no modo edição
+  useEffect(() => {
+    if (isEditMode) {
+      loadCurrentProfile();
+    } else {
+      // Modo registro: usar dados do contexto
+      setUsername(registrationData.usuario || "");
+      const initialImageIndex = profileImageOptions.findIndex(
+        (img) => img.key === registrationData.profileImageKey
+      );
+      setCurrentImageIndex(initialImageIndex !== -1 ? initialImageIndex : 0);
+      setLoading(false);
+    }
+  }, [isEditMode, currentChildId, user]);
+
+  const loadCurrentProfile = async () => {
+    if (!user || !currentChildId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const service = new GameProgressService();
+      const profiles = await service.getChildrenProfiles(user.uid);
+      const profile = profiles.find((p) => p.id === currentChildId);
+
+      if (profile) {
+        setChildProfile(profile);
+        setUsername(profile.name || "");
+
+        const imageIndex = profileImageOptions.findIndex(
+          (img) => img.key === profile.avatar
+        );
+        setCurrentImageIndex(imageIndex !== -1 ? imageIndex : 0);
+      }
+    } catch (error) {
+      logger.error("❌ Erro ao carregar perfil:", error);
+      Alert.alert("Erro", "Não foi possível carregar o perfil da criança.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleNextImage = () => {
     setCurrentImageIndex((prevIndex) =>
@@ -76,11 +127,10 @@ export default function CustomizarPerfil() {
     );
   };
 
-  function handleGoNext() {
+  const handleSave = async () => {
     const trimmedUsername = username.trim();
     if (trimmedUsername === "") {
       setIsUsernameValid(false);
-      // Alert.alert("Atenção!", "Por favor, digite um nome de usuário.");
       return;
     }
 
@@ -93,14 +143,57 @@ export default function CustomizarPerfil() {
 
     const selectedImage = profileImageOptions[currentImageIndex];
 
-    // Salva o nome de usuário e a chave da imagem de perfil no contexto
-    setRegistrationData({
-      usuario: trimmedUsername,
-      imagemPerfil: selectedImage.key,
-    });
+    if (isEditMode) {
+      // Modo edição: salvar no Firebase
+      if (!user || !currentChildId) {
+        Alert.alert("Erro", "Usuário ou perfil da criança não encontrado.");
+        return;
+      }
 
-    // Navega para a tela de conclusão (ou próxima etapa do cadastro)
-    router.replace("./concluido"); // Use replace para não voltar para esta tela
+      setSaving(true);
+
+      try {
+        const service = new GameProgressService();
+        const result = await service.updateChildProfile(user.uid, currentChildId, {
+          username: trimmedUsername,
+          avatar_url: selectedImage.key,
+        });
+
+        if (result.success) {
+          Alert.alert("Sucesso!", "Perfil atualizado com sucesso!", [
+            {
+              text: "OK",
+              onPress: () => router.back(),
+            },
+          ]);
+        } else {
+          Alert.alert("Erro", result.error || "Não foi possível atualizar o perfil.");
+        }
+      } catch (error) {
+        logger.error("❌ Erro ao salvar perfil:", error);
+        Alert.alert("Erro", "Ocorreu um erro inesperado. Tente novamente.");
+      } finally {
+        setSaving(false);
+      }
+    } else {
+      // Modo registro: salvar no contexto
+      setRegistrationData({
+        usuario: trimmedUsername,
+        imagemPerfil: selectedImage.key,
+      });
+      router.replace("./concluido");
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#9d59ff" />
+        <Text style={{ marginTop: 16, fontFamily: "TTMilksCasualPie", color: "#666" }}>
+          Carregando perfil...
+        </Text>
+      </View>
+    );
   }
 
   return (
@@ -138,7 +231,15 @@ export default function CustomizarPerfil() {
             textAlign: "center",
           }}
         >
-          Agora Vamos <Text style={{ color: "#b07aff" }}>customizar</Text> seu perfil!
+          {isEditMode ? (
+            <>
+              <Text style={{ color: "#b07aff" }}>Personalizar</Text> Perfil
+            </>
+          ) : (
+            <>
+              Agora Vamos <Text style={{ color: "#b07aff" }}>customizar</Text> seu perfil!
+            </>
+          )}
         </Text>
 
         <Text
@@ -146,11 +247,10 @@ export default function CustomizarPerfil() {
             fontSize: 18,
             color: "rgba(72, 137, 157, 0.81)",
             fontFamily: "TTMilksCasualPie",
-            // marginTop: 20,
             textAlign: "center",
           }}
         >
-          preencha os itens abaixo:
+          {isEditMode ? "Altere o nome e avatar:" : "preencha os itens abaixo:"}
         </Text>
 
         <DefaultInput
@@ -236,9 +336,18 @@ export default function CustomizarPerfil() {
         </View>
 
         <PinkButton
-          title={"Próximo"}
-          onPress={handleGoNext}
-          style={{ marginTop: "15%" }}
+          title={isEditMode ? (saving ? "Salvando..." : "Salvar Alterações") : "Próximo"}
+          onPress={handleSave}
+          disabled={saving}
+          style={{
+            marginTop: "15%",
+            opacity: saving ? 0.6 : 1,
+            padding: 10,
+            // paddingHorizontal: 20,
+            // width: "100%",
+            textAlign: "center",
+            width: "75%",
+          }}
         />
       </ScrollView>
     </ImageBackground>

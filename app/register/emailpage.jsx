@@ -1,15 +1,13 @@
 import { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
+  Dimensions,
   Image,
   ImageBackground,
   SafeAreaView,
-  ActivityIndicator,
-  Dimensions,
-  TextInput,
   ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 
 import { router } from "expo-router";
@@ -19,17 +17,17 @@ import { router } from "expo-router";
 //   Fredoka_300Light,
 // } from "@expo-google-fonts/fredoka";
 
-import PinkButton from "@/components/pinkbutton";
 import BackButton from "@/components/backbutton";
 import DefaultInput from "@/components/defaultinput";
+import PinkButton from "@/components/pinkbutton";
 
-import { useRegistration } from "../../context/RegistrationContext";
+import { useRegistration } from "@/context/RegistrationContext";
 
 const { width } = Dimensions.get("window");
 
 function EmailPage() {
   const [isEmailValid, setIsEmailValid] = useState(true);
-  const [email, setEmail] = useState(true);
+  const [email, setEmail] = useState("");
   const { registrationData, setRegistrationData } = useRegistration(); // Usa o hook
 
   function handleGoNext() {

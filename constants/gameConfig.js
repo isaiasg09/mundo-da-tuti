@@ -28,9 +28,9 @@ export const GAME_DIFFICULTY_CONFIG = {
     },
   },
   subtracao: {
-    facil: { maxNumber: 6, optionsRange: 7 }, // Números de 1 a 10
-    medio: { maxNumber: 10, optionsRange: 11 }, // Números de 1 a 20
-    dificil: { maxNumber: 20, optionsRange: 21 }, // Números de 1 a 50
+    facil: { maxNumber: 3, optionsRange: 5 },
+    medio: { maxNumber: 5, optionsRange: 10 },
+    dificil: { maxNumber: 10, optionsRange: 20 },
   },
   memory: {
     facil: {

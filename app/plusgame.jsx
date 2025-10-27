@@ -18,6 +18,7 @@ import WinScreen from "../components/winscreen";
 import { GAME_DIFFICULTY_CONFIG } from "../constants/gameConfig"; // Importa nossa configuração
 import { useGameProgress } from "../context/GameContext";
 import { useLevelNavigation } from "../hooks/useLevelNavigation";
+import { logger } from "../utils/logger";
 
 const TOTAL_ROUNDS = 5;
 
@@ -61,7 +62,7 @@ export default function PlusGame() {
     gameType = "soma", // Pega o parâmetro de tipo de jogo da rota. Se nenhum for passado, ele assume 'soma' como padrão.
   } = useLocalSearchParams();
   const { onWinMarkOnly, openNext, openMap, completeLevel } = useLevelNavigation(pathId);
-  const { completeGame } = useGameProgress();
+  const { completeGame, isCompletingGame } = useGameProgress();
 
   // Pega as configurações para a dificuldade atual
   const config = GAME_DIFFICULTY_CONFIG[gameType][difficulty];
@@ -85,16 +86,13 @@ export default function PlusGame() {
     if (isGameWon && !markedRef.current) {
       const gameIndex = Number(gameId);
       if (gameIndex && pathId) {
-        console.log(`[PlusGame] Completando jogo com sync: ${pathId}.game${gameIndex}`);
-
         const completeWithScore = async () => {
           try {
-            const result = await completeGame(pathId, gameIndex, correctAnswersCount);
-            if (result?.success) {
-              console.log(`[PlusGame] ✅ Jogo completado e sincronizado!`);
-            }
+            const result = await completeGame(pathId, gameIndex, correctAnswersCount, {
+              gameType: "plus",
+            });
           } catch (error) {
-            console.error("[PlusGame] ❌ Erro ao completar jogo:", error);
+            logger.error("[PlusGame] ❌ Erro ao completar jogo:", error);
             onWinMarkOnly(gameIndex);
           }
         };
@@ -193,6 +191,7 @@ export default function PlusGame() {
         completeLevel={completeLevel}
         message="Parabéns!"
         subtitle="Você dominou as somas!"
+        isLoading={isCompletingGame}
       />
     );
   }

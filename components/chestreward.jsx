@@ -32,7 +32,12 @@ const ChestReward = ({ pathId, isVisible, onClose }) => {
   const lockScale = useSharedValue(1);
 
   useEffect(() => {
-    if (isVisible && isPathCompleted(pathId) && !hasBeenOpened()) {
+    if (!isVisible) return;
+
+    const pathCompleted = isPathCompleted(pathId);
+    const chestOpened = hasBeenOpened();
+
+    if (pathCompleted && !chestOpened) {
       // Animação de brilho do baú apenas se não foi aberto ainda
       glowOpacity.value = withRepeat(
         withSequence(
@@ -42,7 +47,7 @@ const ChestReward = ({ pathId, isVisible, onClose }) => {
         -1,
         true
       );
-    } else if (isVisible && !isPathCompleted(pathId)) {
+    } else if (!pathCompleted) {
       // Animação sutil do cadeado para chamar atenção
       lockScale.value = withRepeat(
         withSequence(
@@ -53,21 +58,24 @@ const ChestReward = ({ pathId, isVisible, onClose }) => {
         true
       );
     }
+
+    // Reset do estado local quando o componente é remontado
+    // mas apenas se o baú realmente não foi aberto ainda
+    if (!chestOpened) {
+      setHasBeenClickedThisSession(false);
+      setChestOpened(false);
+    } else {
+      // Se já foi aberto, manter o baú na posição aberta
+      setChestOpened(true);
+      setHasBeenClickedThisSession(true);
+    }
   }, [isVisible, pathId, gameProgress]);
 
   const handleChestPress = async () => {
-    console.log(`[ChestReward] handleChestPress called - pathId: ${pathId}`);
-    console.log(`[ChestReward] isPathCompleted: ${isPathCompleted(pathId)}`);
-    console.log(`[ChestReward] hasBeenClickedThisSession: ${hasBeenClickedThisSession}`);
-
-    if (!isPathCompleted(pathId) || hasBeenClickedThisSession) {
-      console.log(
-        `[ChestReward] Chest press blocked - path not completed or already clicked`
-      );
+    // Verificar se o caminho foi completado E se o baú não foi aberto ainda
+    if (!isPathCompleted(pathId) || hasBeenOpened() || hasBeenClickedThisSession) {
       return;
     }
-
-    console.log(`[ChestReward] Opening chest for path: ${pathId}`);
 
     // Animação de clique
     scale.value = withSequence(
@@ -76,19 +84,20 @@ const ChestReward = ({ pathId, isVisible, onClose }) => {
       withTiming(1, { duration: 100 })
     );
 
-    // Abrir baú e desbloquear próximo caminho
-    setChestOpened(true);
+    // Marcar como clicado nesta sessão para evitar múltiplos cliques enquanto processa
     setHasBeenClickedThisSession(true);
 
     try {
       const unlocked = await unlockNextPathViaChest(pathId);
-      console.log(`[ChestReward] Unlock result:`, unlocked);
 
       if (unlocked) {
+        setChestOpened(true);
         setShowModal(true);
       }
     } catch (error) {
       console.error(`[ChestReward] Error unlocking path:`, error);
+      // Reset em caso de erro
+      setHasBeenClickedThisSession(false);
     }
   };
 
@@ -130,46 +139,26 @@ const ChestReward = ({ pathId, isVisible, onClose }) => {
     }
   };
 
-  // Verificar se o baú já foi aberto (próximo caminho desbloqueado)
+  // Verificar se o baú já foi aberto (verificando flag específica do baú)
   const hasBeenOpened = () => {
     const pathMapping = {
-      castelo: "molusco_perola", // próximo caminho após o castelo
-      molusco_perola: "anemona", // próximo caminho após molusco_perola
-      anemona: null, // anemona é o último
+      first: "castelo",
+      second: "molusco_perola",
+      third: "anemona",
     };
 
-    // Usar pathId correto (castelo, molusco_perola, anemona) ao invés de first, second, third
-    const realPathId =
-      pathId === "first"
-        ? "castelo"
-        : pathId === "second"
-          ? "molusco_perola"
-          : pathId === "third"
-            ? "anemona"
-            : pathId;
+    const realPathId = pathMapping[pathId] || pathId;
 
-    const nextPathId = pathMapping[realPathId];
-    console.log(
-      `[ChestReward] hasBeenOpened check - pathId: ${pathId}, realPathId: ${realPathId}, nextPathId: ${nextPathId}`
-    );
+    // Verificar se existe uma flag específica para o baú ter sido aberto
+    const chestFlag = gameProgress.paths?.[realPathId]?.chestOpened;
 
-    if (!nextPathId) {
-      console.log(`[ChestReward] Último caminho, retornando false`);
-      return false; // último caminho não tem próximo
-    }
-
-    const nextPathStatus = gameProgress.paths?.[nextPathId]?.status;
-    const result = nextPathStatus === "unlocked" || nextPathStatus === "completed";
-    console.log(
-      `[ChestReward] Next path status: ${nextPathStatus}, hasBeenOpened: ${result}`
-    );
-
-    return result;
+    // Se não há flag, o baú não foi aberto ainda
+    return chestFlag === true;
   };
 
   if (!isVisible) return null;
 
-  const canOpenChest = isPathCompleted(pathId) && !hasBeenClickedThisSession;
+  const canOpenChest = isPathCompleted(pathId) && !hasBeenOpened();
 
   return (
     <View style={styles.container}>
@@ -190,7 +179,7 @@ const ChestReward = ({ pathId, isVisible, onClose }) => {
 
           {/* Imagem do baú */}
           <View style={styles.chestContainer}>
-            {hasBeenClickedThisSession ? (
+            {hasBeenOpened() || chestOpened ? (
               <Image
                 source={require("../assets/images/treasure.png")}
                 style={styles.chestImage}
@@ -203,7 +192,7 @@ const ChestReward = ({ pathId, isVisible, onClose }) => {
             )}
 
             {/* Cadeado quando o baú não pode ser aberto */}
-            {!canOpenChest && !hasBeenClickedThisSession && (
+            {!canOpenChest && !hasBeenOpened() && (
               <Animated.View style={[styles.lockContainer, animatedLockStyle]}>
                 <Image
                   source={require("../assets/images/cadeado.webp")}

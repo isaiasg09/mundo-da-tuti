@@ -1,12 +1,14 @@
 import { Image } from "expo-image";
 import { useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dimensions, ImageBackground, Text, TouchableOpacity, View } from "react-native";
 import { moderateScale, scale, verticalScale } from "react-native-size-matters";
 import GameHeader from "../components/gameheader";
 import WinScreen from "../components/winscreen";
 import { GAME_DIFFICULTY_CONFIG } from "../constants/gameConfig";
+import { useGameProgress } from "../context/GameContext";
 import { useLevelNavigation } from "../hooks/useLevelNavigation";
+import { logger } from "../utils/logger";
 
 const backgroundImg = require("../assets/images/bg_1.png");
 const { width, height } = Dimensions.get("window");
@@ -48,6 +50,8 @@ export default function WordGame() {
   const difficulty = params.difficulty || "facil";
   const config = GAME_DIFFICULTY_CONFIG.word[difficulty];
   const { openMap, openNext, completeLevel, onWinMarkOnly } = useLevelNavigation(pathId);
+  const { completeGame, isCompletingGame } = useGameProgress();
+  const markedRef = useRef(false);
 
   const [currentWord, setCurrentWord] = useState(null);
   const [selectedLetters, setSelectedLetters] = useState([]);
@@ -169,15 +173,27 @@ export default function WordGame() {
   };
 
   // Marcar nível como completo quando o jogo é ganho
+  // useEffect para marcar como completo na vitória com Firebase sync
   useEffect(() => {
-    if (isGameWon && !levelCompleted) {
-      const current = Number(gameId);
-      if (current) {
-        setLevelCompleted(true);
-        onWinMarkOnly(current);
+    if (isGameWon && !markedRef.current) {
+      const gameIndex = Number(gameId);
+      if (gameIndex && pathId) {
+        const completeWithScore = async () => {
+          try {
+            const result = await completeGame(pathId, gameIndex, wordsCompleted, {
+              gameType: "word",
+            });
+          } catch (error) {
+            logger.error("[WordGame] ❌ Erro ao completar jogo:", error);
+            onWinMarkOnly(gameIndex);
+          }
+        };
+
+        completeWithScore();
+        markedRef.current = true;
       }
     }
-  }, [isGameWon, gameId, onWinMarkOnly, levelCompleted]);
+  }, [isGameWon, gameId, pathId, completeGame, wordsCompleted, onWinMarkOnly]);
 
   // Animação de shake quando há erro
   useEffect(() => {
@@ -461,6 +477,7 @@ export default function WordGame() {
             completeLevel={completeLevel}
             message="Parabéns!"
             subtitle={`Você montou a palavra "${currentWord.word}" corretamente!`}
+            isLoading={isCompletingGame}
           />
         )}
       </View>

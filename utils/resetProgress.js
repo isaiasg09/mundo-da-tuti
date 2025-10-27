@@ -24,7 +24,7 @@ export const resetGameProgress = async (user, currentChildId) => {
             try {
               const gameService = new GameProgressService();
 
-              console.log(`🔄 Resetando progresso da criança ${currentChildId}...`);
+              // console.log(`🔄 Resetando progresso da criança ${currentChildId}...`);
 
               // Resetar progresso no Firebase
               const result = await gameService.resetChildProgress(
@@ -49,7 +49,7 @@ export const resetGameProgress = async (user, currentChildId) => {
                       text: "OK",
                       onPress: () => {
                         // O GameContext vai recarregar automaticamente via listener
-                        console.log("✅ Progresso resetado com sucesso");
+                        // console.log("✅ Progresso resetado com sucesso");
                       },
                     },
                   ]

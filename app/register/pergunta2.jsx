@@ -1,18 +1,18 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-  ScrollView,
-  ImageBackground,
-} from "react-native";
-import { router } from "expo-router";
 import BackButton from "@/components/backbutton";
 import ProgressBar from "@/components/progressbar";
+import { router } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+  Image,
+  ImageBackground,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-import { useRegistration } from "../../context/RegistrationContext";
+import { useRegistration } from "@/context/RegistrationContext";
 
 const options = ["SIM", "NÃO"];
 
@@ -20,13 +20,12 @@ export default function Pergunta2() {
   const { registrationData, setRegistrationData } = useRegistration(); // Usa o hook
 
   const [selectedOption, setSelectedOption] = useState(() => {
-    // Verifica se já existe uma opção selecionada no contexto
-    const savedOption = registrationData.agitada;
-    return savedOption !== false ? options.indexOf(savedOption) : null; // se não houver, retorna null
+    const saved = registrationData.agitada;
+    const idx = options.indexOf(saved);
+    return idx !== -1 ? idx : null;
   });
 
   useEffect(() => {
-    // Atualiza o contexto com a opção selecionada
     if (selectedOption !== null) {
       setRegistrationData({ agitada: options[selectedOption] });
     }

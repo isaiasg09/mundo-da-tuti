@@ -41,51 +41,37 @@ import { PATHS } from "@/constants/paths";
 
 // const levels = createLevels();
 
-// Cores dos níveis
-const stateColors = {
-  [LEVEL_STATES.COMPLETED]: "#4CAF50",
-  [LEVEL_STATES.UNLOCKED]: "#ff3b3b",
-  [LEVEL_STATES.LOCKED]: "#BDBDBD",
-};
-
 const { height: windowHeight, width: windowWidth } = Dimensions.get("window");
 
-// const createSharedScales = (count) => {
-//   return Array.from({ length: count }, () => useSharedValue(1));
-// };
-
-// --- NOVA FUNÇÃO PARA PRÉ-CARREGAR OS JOGOS ---
+// --- FUNÇÃO PARA PRÉ-CARREGAR OS JOGOS ---
 // Esta função mapeia uma rota para sua importação dinâmica explícita.
-const preloadGameModule = async (route) => {
-  console.log(`Tentando pré-carregar o módulo para a rota: ${route}`);
-  switch (route) {
-    case "/fishgame":
-      // O caminho aqui deve ser relativo a ESTE arquivo (shellpathmap.jsx)
-      // Se seu app está em /app e este componente em /components, o caminho é '../app/fishgame'
-      return await import("../app/fishgame");
+// const preloadGameModule = async (route) => {
+//   switch (route) {
+//     case "/fishgame":
+//       return await import("../app/fishgame");
 
-    // case "/MemoryGame":
-    //   return await import("../app/memorygame"); // Substitua pelo caminho real do seu jogo da memória
+//     // case "/MemoryGame":
+//     //   return await import("../app/memorygame");
 
-    // case "/PuzzleGame":
-    //   return await import("../app/puzzlegame"); // Substitua pelo caminho real do seu quebra-cabeça
+//     // case "/PuzzleGame":
+//     //   return await import("../app/puzzlegame");
 
-    // --- ADICIONE OS OUTROS JOGOS AQUI ---
-    // case '/Game4':
-    //   return await import('../app/game4');
-    // case '/Game5':
-    //   return await import('../app/game5');
-    // case '/Game6':
-    //   return await import('../app/game6');
+//     // --- OUTROS JOGOS AQUI ---
+//     // case '/Game4':
+//     //   return await import('../app/game4');
+//     // case '/Game5':
+//     //   return await import('../app/game5');
+//     // case '/Game6':
+//     //   return await import('../app/game6');
 
-    default:
-      // Se a rota não for encontrada, apenas loga um aviso e não quebra o app
-      console.warn(
-        `Nenhum caminho de pré-carregamento configurado para a rota: ${route}`
-      );
-      return Promise.resolve(); // Retorna uma promessa resolvida para não gerar um erro
-  }
-};
+//     default:
+//       // Se a rota não for encontrada, apenas loga um aviso e não quebra o app
+//       // console.warn(
+//       //   `Nenhum caminho de pré-carregamento configurado para a rota: ${route}`
+//       // );
+//       return Promise.resolve(); // Retorna uma promessa resolvida para não gerar um erro
+//   }
+// };
 
 export default function ShellPathMap({ pathId }) {
   const shellImages = [
@@ -193,7 +179,7 @@ export default function ShellPathMap({ pathId }) {
         },
       });
     } catch (error) {
-      console.error("Erro ao carregar o jogo:", error);
+      // console.error("Erro ao carregar o jogo:", error);
       router.back();
       Alert.alert("Erro", "Não foi possível carregar o jogo. Tente novamente.");
     } finally {
@@ -260,7 +246,6 @@ export default function ShellPathMap({ pathId }) {
           <Path
             key={`path-${level.id}`}
             d={generatePath(level, levels[index + 1], index)}
-            // stroke={stateColors[levels[index + 1].state] || " #d49b65"}
             stroke={"#d49b65"}
             strokeWidth={4}
             fill="none"

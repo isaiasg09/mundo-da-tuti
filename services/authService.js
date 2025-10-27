@@ -1,11 +1,29 @@
 // services/authService.js - Para Expo
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
+  EmailAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   signInWithEmailAndPassword,
   signOut,
+  updateEmail,
+  updatePassword,
 } from "firebase/auth";
-import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where,
+  writeBatch,
+} from "firebase/firestore";
+import { logger } from "../utils/logger";
 import { auth, firestore } from "./firebase";
 import GameProgressService from "./gameProgressService";
 
@@ -13,17 +31,17 @@ class AuthService {
   // Helper para aguardar Firebase estar pronto
   async waitForFirebaseReady() {
     return new Promise((resolve) => {
-      console.log("🔄 Verificando se Firebase está pronto...");
-      console.log("🔍 Auth disponível:", !!auth);
-      console.log("🔍 Firestore disponível:", !!firestore);
+      logger.dev.firebase("Verificando se Firebase está pronto...");
+      logger.dev.firebase("Auth disponível:", !!auth);
+      logger.dev.firebase("Firestore disponível:", !!firestore);
 
       if (auth && firestore) {
-        console.log("✅ Firebase está pronto!");
+        logger.dev.firebase("Firebase está pronto!");
         resolve(true);
       } else {
-        console.log("⏳ Aguardando Firebase inicializar...");
+        logger.dev.firebase("Aguardando Firebase inicializar...");
         setTimeout(() => {
-          console.log("✅ Timeout concluído, assumindo que Firebase está pronto");
+          logger.dev.firebase("Timeout concluído, assumindo que Firebase está pronto");
           resolve(true);
         }, 1000);
       }
@@ -34,10 +52,10 @@ class AuthService {
   async retryOperation(operation, maxRetries = 3, delay = 1000) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`🔄 Tentativa ${attempt}/${maxRetries}`);
+        logger.dev.firebase(`Tentativa ${attempt}/${maxRetries}`);
         return await operation();
       } catch (error) {
-        console.error(`❌ Tentativa ${attempt} falhou:`, error.message);
+        logger.error(`Tentativa ${attempt} falhou:`, error.message);
 
         if (attempt === maxRetries) {
           throw error;
@@ -52,16 +70,16 @@ class AuthService {
   // Registrar responsável
   async registerGuardian(guardianData) {
     try {
-      console.log("🔥 Iniciando registro do responsável...");
+      logger.dev.auth("Iniciando registro do responsável...");
 
       // Aguardar Firebase estar pronto
       await this.waitForFirebaseReady();
 
       // Validar dados antes de enviar
-      console.log("📧 Email recebido:", `"${guardianData.email}"`);
-      console.log("🔑 Senha recebida:", `"${guardianData.senha}"`);
-      console.log("🔍 Tipo do email:", typeof guardianData.email);
-      console.log("🔍 Comprimento do email:", guardianData.email?.length);
+      logger.dev.auth("Email recebido:", `"${guardianData.email}"`);
+      logger.dev.auth("Senha recebida:", `"${guardianData.senha}"`);
+      logger.dev.auth("Tipo do email:", typeof guardianData.email);
+      logger.dev.auth("Comprimento do email:", guardianData.email?.length);
 
       // Verificar se email e senha existem
       if (!guardianData.email || !guardianData.senha) {
@@ -76,9 +94,9 @@ class AuthService {
 
       // Usar retry logic para criar usuário
       const result = await this.retryOperation(async () => {
-        console.log("🔐 Criando conta no Firebase Auth...");
-        console.log("📧 Email final:", `"${guardianData.email}"`);
-        console.log("🔑 Senha final:", `"${guardianData.senha}"`);
+        logger.dev.firebase("Criando conta no Firebase Auth...");
+        logger.dev.firebase("Email final:", `"${guardianData.email}"`);
+        logger.dev.firebase("Senha final:", `"${guardianData.senha}"`);
 
         // 1. Criar conta no Firebase Auth
         return await createUserWithEmailAndPassword(
@@ -89,29 +107,28 @@ class AuthService {
       });
 
       const user = result.user;
-      console.log("✅ Usuário criado no Auth:", user.uid);
+      logger.dev.firebase("Usuário criado no Auth:", user.uid);
 
       // 2. Criar documento do responsável no Firestore
       await setDoc(doc(firestore, "guardians", user.uid), {
         email: guardianData.email,
         // nome: guardianData.usuario,
         codigo_seguranca: guardianData.codigoSeguranca,
-        telefone: guardianData.telefone || "",
-        tipo_responsavel: "responsavel",
+        parentesco: guardianData.parentesco || "",
         created_at: serverTimestamp(),
         updated_at: serverTimestamp(),
         subscription_type: "free",
       });
 
-      console.log("✅ Documento do responsável criado");
+      logger.dev.firebase("Documento do responsável criado");
 
       // 3. Criar perfil da primeira criança
       const childResult = await this.createChildProfile(user.uid, guardianData);
-      console.log("✅ Perfil da criança criado:", childResult.childId);
+      logger.dev.firebase("Perfil da criança criado:", childResult.childId);
 
       return { success: true, guardianId: user.uid, childId: childResult.childId };
     } catch (error) {
-      console.error("❌ Erro ao registrar responsável:", error);
+      logger.error("Erro ao registrar responsável:", error);
       return { success: false, error: error.message };
     }
   }
@@ -129,6 +146,10 @@ class AuthService {
           genero: childData.genero || "",
           avatar_url: childData.imagemPerfil || null, // Avatar da criança, não do guardião
           data_nascimento: null,
+          level: 1, // Nível inicial
+          total_xp: 0, // XP total
+          xp_to_next_level: 30, // XP necessário para próximo nível (3 jogos * 10 XP)
+          total_games_completed: 0, // Total de jogos completados
           created_at: serverTimestamp(),
           updated_at: serverTimestamp(),
           active: true,
@@ -180,7 +201,44 @@ class AuthService {
           },
         },
 
-        achievements: {},
+        achievements: {
+          estudo_focado: {
+            title: "Estudo Focado",
+            description: "Complete sua primeira atividade",
+            unlocked: false,
+            unlocked_at: null,
+          },
+          imbativel: {
+            title: "Imbatível!",
+            description: "Desbloqueie o segundo caminho",
+            unlocked: false,
+            unlocked_at: null,
+          },
+          mestre_calculo: {
+            title: "Mestre do Cálculo",
+            description: "Complete 5 atividades",
+            unlocked: false,
+            unlocked_at: null,
+          },
+          explorador: {
+            title: "Explorador",
+            description: "Complete 10 atividades",
+            unlocked: false,
+            unlocked_at: null,
+          },
+          campeao: {
+            title: "Campeão",
+            description: "Desbloqueie o terceiro caminho",
+            unlocked: false,
+            unlocked_at: null,
+          },
+          dedicado: {
+            title: "Dedicado",
+            description: "Complete 15 atividades",
+            unlocked: false,
+            unlocked_at: null,
+          },
+        },
 
         statistics: {
           learning: {
@@ -201,7 +259,7 @@ class AuthService {
 
       return { success: true, childId: childRef.id };
     } catch (error) {
-      console.error("❌ Erro ao criar perfil da criança:", error);
+      logger.error("Erro ao criar perfil da criança:", error);
       return { success: false, error: error.message };
     }
   }
@@ -251,6 +309,167 @@ class AuthService {
   // Listener de mudanças na autenticação
   onAuthStateChanged(callback) {
     return onAuthStateChanged(auth, callback);
+  }
+
+  /**
+   * Valida o código de segurança do responsável, recebe o id do usuario logado e o código digitado
+   */
+  async validateSecurityCode(userId, inputCode) {
+    try {
+      if (!userId) return { success: false, message: "Usuário inválido." };
+
+      const guardianRef = doc(firestore, "guardians", userId);
+
+      const guardianSnap = await getDoc(guardianRef);
+
+      let data = guardianSnap.exists() ? guardianSnap.data() : null;
+
+      if (!data) return { success: false, message: "Usuário não encontrado." };
+
+      const stored = (data.codigo_seguranca ?? "").toString().trim();
+      const input = (inputCode ?? "").toString().trim();
+
+      if (!stored) return { success: false, message: "Código não configurado." };
+      return stored === input
+        ? { success: true }
+        : { success: false, message: "Código de segurança incorreto." };
+    } catch (e) {
+      console.error("❌ validateSecurityCode error:", e);
+      return { success: false, message: "Erro interno. Tente novamente." };
+    }
+  }
+
+  async deleteGuardianAccount(securityCode) {
+    try {
+      const user = auth.currentUser;
+      if (!user) return { success: false, error: "Usuário não autenticado." };
+
+      // Validar código de segurança
+      const validation = await this.validateSecurityCode(user.uid, securityCode);
+      if (!validation.success) {
+        return { success: false, error: validation.message || "Código inválido." };
+      }
+
+      // Buscar todas as crianças
+      const childrenRef = collection(firestore, "guardians", user.uid, "children");
+      const childrenSnap = await getDocs(childrenRef);
+
+      // Apagar dados no Firestore em batch
+      const batch = writeBatch(firestore);
+      const childIds = [];
+      childrenSnap.forEach((childDoc) => {
+        batch.delete(childDoc.ref);
+        childIds.push(childDoc.id);
+      });
+      // Apagar doc do guardião
+      batch.delete(doc(firestore, "guardians", user.uid));
+      await batch.commit();
+
+      // Limpar caches locais de progresso
+      for (const childId of childIds) {
+        try {
+          await AsyncStorage.removeItem(`@game_progress_${user.uid}_${childId}`);
+        } catch {}
+        try {
+          await AsyncStorage.removeItem(`@mdt:progress:${user.uid}:${childId}`);
+        } catch {}
+      }
+
+      // Por fim, apagar o usuário do Auth
+      try {
+        await deleteUser(user);
+      } catch (e) {
+        if (e && e.code === "auth/requires-recent-login") {
+          return {
+            success: false,
+            error: "requires-recent-login",
+            message:
+              "Por segurança, faça login novamente e tente excluir a conta mais uma vez.",
+          };
+        }
+        throw e;
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("❌ Erro ao excluir conta:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Alterar senha do usuário
+   */
+  async changePassword(currentPassword, newPassword) {
+    try {
+      const user = auth.currentUser;
+      if (!user) return { success: false, error: "Usuário não autenticado." };
+
+      // Reautenticar com a senha atual
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+
+      // Atualizar senha
+      await updatePassword(user, newPassword);
+
+      return { success: true };
+    } catch (error) {
+      console.error("❌ Erro ao alterar senha:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Alterar email do usuário
+   */
+  async changeEmail(currentPassword, newEmail) {
+    try {
+      const user = auth.currentUser;
+      if (!user) return { success: false, error: "Usuário não autenticado." };
+
+      // Verificar se o email já existe
+      const emailExists = await this.checkEmailExists(newEmail);
+      if (emailExists) {
+        return {
+          success: false,
+          error: "Este email já está sendo usado por outra conta.",
+        };
+      }
+
+      // Reautenticar com a senha atual
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+
+      // Atualizar email no Auth
+      await updateEmail(user, newEmail);
+
+      // Atualizar email no Firestore
+      const guardianRef = doc(firestore, "guardians", user.uid);
+      await updateDoc(guardianRef, {
+        email: newEmail.toLowerCase(),
+        updated_at: serverTimestamp(),
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error("❌ Erro ao alterar email:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Verificar se um email já existe
+   */
+  async checkEmailExists(email) {
+    try {
+      const guardiansRef = collection(firestore, "guardians");
+      const q = query(guardiansRef, where("email", "==", email.toLowerCase()));
+      const querySnapshot = await getDocs(q);
+      return !querySnapshot.empty;
+    } catch (error) {
+      console.error("❌ Erro ao verificar email:", error);
+      return false;
+    }
   }
 }
 

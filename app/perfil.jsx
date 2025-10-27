@@ -1,31 +1,50 @@
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Image, Text, View } from "react-native";
+import { ActivityIndicator, Image, ScrollView, Text, View } from "react-native";
 
 import { router } from "expo-router";
 
 import PinkButton from "@/components/pinkbutton";
+import AchievementModal from "../components/achievementmodal";
 import BackButton from "../components/backbutton";
 import Conquista from "../components/conquista";
 import ProgressBar from "../components/progressbar";
 
+import { useAchievementContext } from "@/context/AchievementContext";
 import { useAuth } from "@/context/AuthContext";
 import { useGameProgress } from "@/context/GameContext";
 import GameProgressService from "@/services/gameProgressService";
+import { logger } from "../utils/logger";
 
 import { PROFILE_IMAGE_OPTIONS } from "../constants/paths";
 
 export default function Perfil() {
   const { user } = useAuth();
-  const { gameProgress, currentChildId, getTotalGamesCompleted } = useGameProgress();
+  const { gameProgress, currentChildId, getTotalGamesCompleted, setActiveChild } =
+    useGameProgress();
+  const { mapAllAchievements } = useAchievementContext();
   const [childProfile, setChildProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [achievements, setAchievements] = useState([]);
+  const [selectedAchievement, setSelectedAchievement] = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
+  // Carregar perfil da criança ao montar o componente ou quando currentChildId mudar
   useEffect(() => {
     loadChildProfile();
   }, [currentChildId, user]);
 
+  // Carregar conquistas quando o perfil mudar
+  useEffect(() => {
+    if (childProfile?.achievements) {
+      const mappedAchievements = mapAllAchievements(childProfile.achievements);
+      setAchievements(mappedAchievements);
+    }
+  }, [childProfile, mapAllAchievements]);
+
+  // função assincrona para carregar o perfil da criança
   const loadChildProfile = async () => {
-    if (!user || !currentChildId) {
+    // se não houver usuário, não tenta carregar
+    if (!user) {
       setLoading(false);
       return;
     }
@@ -35,61 +54,53 @@ export default function Perfil() {
       const service = new GameProgressService();
       const profiles = await service.getChildrenProfiles(user.uid);
 
-      console.log(profiles);
+      if (!currentChildId && profiles.length > 0) {
+        // Seleciona a primeira criança como ativa se nenhuma estiver selecionada
+        setActiveChild(profiles[0].id);
+      }
 
-      const profile = profiles.find((p) => p.id === currentChildId);
+      const profile = profiles.find((p) => p.id === (currentChildId || profiles[0]?.id));
 
-      console.log(currentChildId);
-      setChildProfile(profile);
-      console.log(profile);
+      // Carregar dados completos do perfil incluindo conquistas
+      if (profile) {
+        try {
+          const progressRef = service.getProgressRef(user.uid, profile.id);
+          const { getDoc } = await import("firebase/firestore");
+          const doc = await getDoc(progressRef);
+          if (doc.exists()) {
+            const data = doc.data();
+            setChildProfile({
+              ...profile,
+              ...data.profile,
+              achievements: data.achievements || {},
+            });
+          } else {
+            setChildProfile(profile);
+          }
+        } catch (error) {
+          logger.error("❌ Erro ao carregar dados do perfil:", error);
+          setChildProfile(profile);
+        }
+      } else {
+        setChildProfile(null);
+      }
     } catch (error) {
-      console.error("❌ Erro ao carregar perfil da criança:", error);
+      logger.error("❌ Erro ao carregar perfil da criança:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  console.log(childProfile);
+  // Abrir modal de conquista
+  const handleAchievementPress = (achievement) => {
+    setSelectedAchievement(achievement);
+    setShowModal(true);
+  };
 
-  // Calcular conquistas baseadas no progresso
-  const getAchievements = () => {
-    const totalGames = getTotalGamesCompleted();
-    const paths = gameProgress.paths;
-
-    const achievements = [
-      {
-        title: "Estudo Focado",
-        image: require("@/assets/images/conquistas/conquista1.webp"),
-        unlocked: totalGames >= 1, // Primeira atividade concluída
-      },
-      {
-        title: "Imbatível!",
-        image: require("@/assets/images/conquistas/conquistaperola.webp"),
-        unlocked:
-          paths.molusco_perola?.status === "unlocked" ||
-          paths.molusco_perola?.status === "completed",
-      },
-      {
-        title: "Mestre do Cálculo",
-        image: require("@/assets/images/conquistas/conquistacalculo.webp"),
-        unlocked: totalGames >= 5, // 5 atividades concluídas
-      },
-      {
-        title: "Explorador",
-        unlocked: totalGames >= 10, // 10 atividades concluídas
-      },
-      {
-        title: "Campeão",
-        unlocked:
-          paths.anemona?.status === "unlocked" || paths.anemona?.status === "completed",
-      },
-      {
-        title: "Dedicado",
-        unlocked: totalGames >= 15, // 15 atividades concluídas
-      },
-    ];
-
-    return achievements;
+  // Fechar modal
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedAchievement(null);
   };
 
   const avatarSource = childProfile?.avatar
@@ -98,15 +109,21 @@ export default function Perfil() {
     : require("@/assets/images/perfis/profile_placeholder.png");
 
   // Debug log para verificar o avatar
-  console.log("🖼️ Avatar key:", childProfile?.avatar);
-  console.log(
-    "🖼️ Avatar source found:",
-    !!PROFILE_IMAGE_OPTIONS.find((option) => option.key === childProfile?.avatar)
-  );
+  // console.log("🖼️ Avatar key:", childProfile?.avatar);
+  // console.log(
+  //   "🖼️ Avatar source found:",
+  //   !!PROFILE_IMAGE_OPTIONS.find((option) => option.key === childProfile?.avatar)
+  // );
 
   return (
-    <View
-      style={{ flex: 1, padding: 16, alignItems: "center", backgroundColor: "#fef294" }}
+    <ScrollView
+      style={{ flex: 1, backgroundColor: "#fef294" }}
+      contentContainerStyle={{
+        padding: 16,
+        alignItems: "center",
+        minHeight: "100%",
+      }}
+      showsVerticalScrollIndicator={false}
     >
       <BackButton style={{ position: "absolute", top: 40, left: 16 }} />
 
@@ -191,7 +208,7 @@ export default function Perfil() {
         style={{
           flexDirection: "row",
           width: "90%",
-          marginTop: 32,
+          marginTop: 16,
           textAlign: "center",
           gap: 16,
           justifyContent: "center",
@@ -220,7 +237,7 @@ export default function Perfil() {
           gap: 16,
           justifyContent: "center",
           alignItems: "center",
-          marginTop: 84,
+          marginTop: 32,
         }}
       >
         <Text style={{ fontFamily: "TTMilksCasualPie", color: "#f56796", fontSize: 22 }}>
@@ -228,12 +245,13 @@ export default function Perfil() {
         </Text>
 
         <View style={{ flexDirection: "row", gap: 16, flexWrap: "wrap" }}>
-          {getAchievements().map((achievement, index) => (
+          {achievements.map((achievement) => (
             <Conquista
-              key={index}
+              key={achievement.id}
               title={achievement.title}
               image={achievement.image}
               unlocked={achievement.unlocked}
+              onPress={() => handleAchievementPress(achievement)}
             />
           ))}
         </View>
@@ -251,6 +269,13 @@ export default function Perfil() {
           marginTop: 20,
         }}
       />
-    </View>
+
+      {/* Modal de Conquista */}
+      <AchievementModal
+        visible={showModal}
+        achievement={selectedAchievement}
+        onClose={handleCloseModal}
+      />
+    </ScrollView>
   );
 }

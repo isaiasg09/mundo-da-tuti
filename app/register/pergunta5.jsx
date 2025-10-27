@@ -1,50 +1,33 @@
+import BackButton from "@/components/backbutton";
+import ProgressBar from "@/components/progressbar";
+import { useRegistration } from "@/context/RegistrationContext";
+import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
   Image,
   ImageBackground,
   ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import ProgressBar from "@/components/progressbar";
-import BackButton from "@/components/backbutton";
-import { router } from "expo-router";
-import { useRegistration } from "../../context/RegistrationContext";
 
 const options = ["SIM", "NÃO"];
 
 export default function Pergunta5() {
   const { registrationData, setRegistrationData } = useRegistration(); // Usa o hook
   const [selectedOption, setSelectedOption] = useState(() => {
-    // Verifica se já existe uma opção selecionada no contexto
-    const savedOption = registrationData.seDistraiFacilmente;
-    return savedOption !== false ? options.indexOf(savedOption) : null;
+    const saved = registrationData.seDistraiFacilmente;
+    const idx = options.indexOf(saved);
+    return idx !== -1 ? idx : null;
   });
 
   useEffect(() => {
-    // Atualiza o contexto com a opção selecionada
     if (selectedOption !== null) {
       setRegistrationData({ seDistraiFacilmente: options[selectedOption] });
     }
   }, [selectedOption]);
-
-  // const toggleButtonSelection = (index) => {
-  //   const isNenhuma = options[index] === "NENHUMA";
-
-  //   if (isNenhuma) {
-  //     setSelectedButtons((prev) => (prev.includes(index) ? [] : [index]));
-  //   } else {
-  //     setSelectedButtons((prev) => {
-  //       const hasNenhuma = prev.includes(options.indexOf("NENHUMA"));
-  //       if (hasNenhuma) return [index];
-  //       return prev.includes(index)
-  //         ? prev.filter((i) => i !== index)
-  //         : [...prev, index];
-  //     });
-  //   }
-  // };
 
   return (
     <ImageBackground

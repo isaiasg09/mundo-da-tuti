@@ -1,3 +1,4 @@
+import { useRegistration } from "@/context/RegistrationContext";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
@@ -21,7 +22,6 @@ import ChestReward from "../components/chestreward";
 import LevelNode from "../components/levelnode";
 import SimpleNavBar from "../components/simplenavbar";
 import { useGameProgress } from "../context/GameContext";
-import { useRegistration } from "../context/RegistrationContext";
 import { useLevelNavigation } from "../hooks/useLevelNavigation";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");

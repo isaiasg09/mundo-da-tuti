@@ -14,7 +14,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { logger } from "../utils/logger";
 // Importações do Reanimated
+import DefaultInput from "@/components/defaultinput";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -89,15 +91,15 @@ export default function Login() {
     setIsLoggingIn(true);
 
     try {
-      console.log("🔐 Iniciando processo de login...");
-      console.log("📧 Email:", Email);
+      // console.log("🔐 Iniciando processo de login...");
+      // console.log("📧 Email:", Email);
 
       // Tenta fazer login usando o contexto de autenticação
       const result = await login(Email, Password);
 
       if (result.success) {
-        console.log("✅ Login realizado com sucesso!");
-        console.log("👤 Guardian ID:", result.guardianId);
+        // console.log("✅ Login realizado com sucesso!");
+        // console.log("👤 Guardian ID:", result.guardianId);
 
         // 1. Mostra loading
         router.push("./loading");
@@ -109,7 +111,7 @@ export default function Login() {
         router.dismissAll();
         router.push("./home");
       } else {
-        console.error("❌ Erro no login:", result.error);
+        logger.error("Erro no login:", result.error);
 
         // Trata diferentes tipos de erro do Firebase
         let errorMessage = "Erro ao fazer login. Tente novamente.";
@@ -132,12 +134,10 @@ export default function Login() {
         setIsValid(false);
 
         // Mostra alerta para o usuário
-        Alert.alert("Erro no Login", errorMessage, [
-          { text: "OK", onPress: () => console.log("Alerta de erro fechado") },
-        ]);
+        Alert.alert("Erro no Login", errorMessage, [{ text: "OK" }]);
       }
     } catch (error) {
-      console.error("💥 Erro inesperado no login:", error);
+      logger.error("Erro inesperado no login:", error);
       setLoginError("Erro inesperado. Tente novamente mais tarde.");
       setIsValid(false);
 
@@ -203,7 +203,11 @@ export default function Login() {
             {/* <View style={styles.inputContainer}> */}
             <ScrollView keyboardShouldPersistTaps="handled">
               <TextInput
-                style={[styles.input, emailFocus && styles.inputFocused]}
+                style={[
+                  styles.input,
+                  emailFocus && styles.inputFocused,
+                  { marginBottom: "5%" },
+                ]}
                 onChangeText={onChangeEmail}
                 value={Email}
                 placeholder="Email"
@@ -218,7 +222,8 @@ export default function Login() {
             {/* Password input */}
             {/* <View style={styles.inputContainer}> */}
             <ScrollView keyboardShouldPersistTaps="handled">
-              <TextInput
+              <DefaultInput
+                showToggle
                 style={[styles.input, passwordFocus && styles.inputFocused]}
                 onChangeText={onChangePassword}
                 value={Password}
@@ -399,25 +404,25 @@ const styles = StyleSheet.create({
     height: 55,
     borderRadius: 30,
     paddingHorizontal: 20,
-    width: "100%",
+    // width: "100%",
     fontSize: 13,
     fontFamily: "TTMilksCasualPie",
     backgroundColor: "rgba(102, 172, 206, 0.5)",
     color: "#5483c4",
-    marginBottom: "5%",
+    // marginBottom: "5%",
   },
   inputFocused: {
     backgroundColor: "#ffffff",
     fontSize: 13,
-    shadowOpacity: 0.15,
-    elevation: 4,
+    // shadowOpacity: 0.15,
+    // elevation: 3,
   },
   passwordOptionsContainer: {
     width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginVertical: 10,
   },
   checkboxContainer: {
     flexDirection: "row",

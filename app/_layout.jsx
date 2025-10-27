@@ -1,12 +1,17 @@
 import { AuthProvider } from "@/context/AuthContext";
+import { RegistrationProvider } from "@/context/RegistrationContext";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { Text, View } from "react-native";
 import "react-native-reanimated";
+import AchievementNotification from "../components/achievementnotification";
+import {
+  AchievementProvider,
+  useAchievementContext,
+} from "../context/AchievementContext";
 import { GameProvider } from "../context/GameContext";
-import { RegistrationProvider } from "../context/RegistrationContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -36,19 +41,55 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <GameProvider>
-        <RegistrationProvider>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              navigationBarHidden: true,
-              statusBarHidden: true,
-            }}
-          >
-            <Stack.Screen name="index" />
-          </Stack>
-        </RegistrationProvider>
-      </GameProvider>
+      <AchievementProvider>
+        <GameProvider>
+          <RegistrationProvider>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                navigationBarHidden: true,
+                statusBarHidden: true,
+              }}
+            >
+              <Stack.Screen name="index" />
+            </Stack>
+            <AchievementNotificationWrapper />
+          </RegistrationProvider>
+        </GameProvider>
+      </AchievementProvider>
     </AuthProvider>
+  );
+}
+
+// Componente wrapper para mostrar notificações
+function AchievementNotificationWrapper() {
+  const {
+    currentNotification,
+    isShowingNotification,
+    hideCurrentNotification,
+    showNextNotification,
+    hasPendingNotifications,
+  } = useAchievementContext();
+
+  // Auto-mostrar próxima notificação quando há pendências
+  useEffect(() => {
+    if (hasPendingNotifications) {
+      const timer = setTimeout(() => {
+        showNextNotification();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [hasPendingNotifications, showNextNotification]);
+
+  if (!currentNotification || !isShowingNotification) {
+    return null;
+  }
+
+  return (
+    <AchievementNotification
+      achievement={currentNotification}
+      visible={isShowingNotification}
+      onHide={hideCurrentNotification}
+    />
   );
 }

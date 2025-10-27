@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
   const [guardianData, setGuardianData] = useState(null);
 
   useEffect(() => {
-    console.log("🔄 Configurando listener de autenticação...");
+    // console.log("🔄 Configurando listener de autenticação...");
 
     let unsubscribe = null;
 
@@ -27,25 +27,21 @@ export const AuthProvider = ({ children }) => {
     const timer = setTimeout(() => {
       try {
         unsubscribe = onAuthStateChanged(auth, async (user) => {
-          console.log("🔐 Estado de autenticação mudou:", user ? "Logado" : "Deslogado");
+          // console.log("🔐 Estado de autenticação mudou:", user ? "Logado" : "Deslogado");
 
           if (user) {
-            console.log("👤 Usuário logado:", user.uid);
+            // console.log("👤 Usuário logado:", user.uid);
             setUser(user);
 
             // Aqui você pode buscar dados adicionais do usuário no Firestore se necessário
             // Por exemplo, dados do guardian, preferências, etc.
             try {
-              // TODO: Implementar busca de dados do guardian no Firestore
-              // const guardianInfo = await AuthService.getGuardianData(user.uid);
-              // setGuardianData(guardianInfo);
-
-              console.log("✅ Dados do usuário carregados");
+              // console.log("✅ Dados do usuário carregados");
             } catch (error) {
               console.error("❌ Erro ao carregar dados do usuário:", error);
             }
           } else {
-            console.log("👤 Usuário deslogado");
+            // console.log("👤 Usuário deslogado");
             setUser(null);
             setGuardianData(null);
           }
@@ -59,7 +55,7 @@ export const AuthProvider = ({ children }) => {
     }, 100);
 
     return () => {
-      console.log("🔄 Removendo listener de autenticação");
+      // console.log("🔄 Removendo listener de autenticação");
       clearTimeout(timer);
       if (unsubscribe) {
         unsubscribe();
@@ -68,14 +64,14 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    console.log("🔐 AuthContext: Iniciando login...");
+    // console.log("🔐 AuthContext: Iniciando login...");
     setIsLoading(true);
 
     try {
       const result = await AuthService.login(email, password);
 
       if (result.success) {
-        console.log("✅ AuthContext: Login realizado com sucesso");
+        // console.log("✅ AuthContext: Login realizado com sucesso");
         // O onAuthStateChanged vai atualizar o estado automaticamente
       } else {
         console.error("❌ AuthContext: Erro no login:", result.error);
@@ -91,14 +87,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    console.log("🚪 AuthContext: Iniciando logout...");
+    // console.log("🚪 AuthContext: Iniciando logout...");
     setIsLoading(true);
 
     try {
       const result = await AuthService.logout();
 
       if (result.success) {
-        console.log("✅ AuthContext: Logout realizado com sucesso");
+        // console.log("✅ AuthContext: Logout realizado com sucesso");
         // O onAuthStateChanged vai limpar o estado automaticamente
       } else {
         console.error("❌ AuthContext: Erro no logout:", result.error);

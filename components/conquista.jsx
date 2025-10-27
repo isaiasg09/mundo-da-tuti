@@ -1,8 +1,20 @@
-import { Image, Text, View } from "react-native";
-export default function Conquista({ title = "Conquista", image = "", unlocked = true }) {
+import { Image, Text, TouchableOpacity, View } from "react-native";
+
+export default function Conquista({
+  title = "Conquista",
+  image = "",
+  unlocked = true,
+  onPress = null,
+}) {
+  const Component = onPress ? TouchableOpacity : View;
+
   if (unlocked) {
     return (
-      <View style={{ alignItems: "center", gap: 2 }}>
+      <Component
+        style={{ alignItems: "center", gap: 2 }}
+        onPress={onPress}
+        activeOpacity={onPress ? 0.7 : 1}
+      >
         <View
           style={{
             alignItems: "center",
@@ -12,19 +24,27 @@ export default function Conquista({ title = "Conquista", image = "", unlocked = 
           }}
         >
           <Image
-            source={require("../assets/images/conquistas/conquista1.webp")}
+            source={image || require("../assets/images/conquistas/conquista1.png")}
             style={{ width: 70, height: 70 }}
           />
         </View>
 
-        <Text style={{ fontFamily: "TTMilksCasualPie", color: "#48899d", fontSize: 12 }}>
-          Conquista 1
+        <Text
+          style={{
+            fontFamily: "TTMilksCasualPie",
+            color: "#48899d",
+            fontSize: 12,
+            textAlign: "center",
+            maxWidth: 100,
+          }}
+        >
+          {title}
         </Text>
-      </View>
+      </Component>
     );
   } else {
     return (
-      <View style={{ alignItems: "center", gap: 2 }}>
+      <Component style={{ alignItems: "center", gap: 2 }}>
         <View
           style={{
             alignItems: "center",
@@ -38,11 +58,7 @@ export default function Conquista({ title = "Conquista", image = "", unlocked = 
             style={{ width: 70, height: 70, opacity: 0.5 }}
           />
         </View>
-
-        {/* <Text style={{ fontFamily: "TTMilksCasualPie", color: "#b0b0b0", fontSize: 12 }}>
-          Conquista Trancada
-        </Text> */}
-      </View>
+      </Component>
     );
   }
 }

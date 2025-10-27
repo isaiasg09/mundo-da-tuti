@@ -10,14 +10,15 @@ const initialRegistrationData = {
   idade: "",
   genero: "", // Adicionar este campo
   sindromesCrianca: [],
-  agitada: false,
-  dificuldadeInstrucoes: false,
-  birrasIntensas: false,
-  seDistraiFacilmente: false,
-  interageBem: false,
+  agitada: null,
+  dificuldadeInstrucoes: null,
+  birrasIntensas: null,
+  seDistraiFacilmente: null,
+  interageBem: null,
   usuario: "",
   imagemPerfil: "",
   observacoes: "", // Adicionar para observações personalizadas
+  parentesco: "", // Novo campo para tipo de parentesco
 };
 
 const RegistrationContext = createContext({

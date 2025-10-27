@@ -64,34 +64,34 @@ export default function Index() {
   useEffect(() => {
     if (!authLoading) {
       if (isAuthenticated && user) {
-        console.log("✅ Usuário já está logado, redirecionando para home...");
+        // console.log("✅ Usuário já está logado, redirecionando para home...");
         router.replace("/home");
       }
     }
   }, [isAuthenticated, authLoading, user, router]);
 
   const handleNavigate = async () => {
-    console.log("🚀 HandleNavigate chamado - Auth status:", {
-      isAuthenticated,
-      authLoading,
-    });
+    // console.log("🚀 HandleNavigate chamado - Auth status:", {
+    //   isAuthenticated,
+    //   authLoading,
+    // });
     if (authLoading) {
-      console.log("⏳ Ainda carregando autenticação, aguardando...");
+      // console.log("⏳ Ainda carregando autenticação, aguardando...");
       return;
     }
     setLoading(true);
     if (isAuthenticated && user) {
-      console.log("🏠 Usuário logado, indo para home...");
+      // console.log("🏠 Usuário logado, indo para home...");
       router.replace("/home");
     } else {
-      console.log("🔄 Navegando para tela de login...");
+      // console.log("🔄 Navegando para tela de login...");
       router.replace("/login");
     }
     setLoading(false);
   };
 
   const toggleScreen = () => {
-    console.log("👆 ToggleScreen chamado, showEnter atual:", showEnter);
+    // console.log("👆 ToggleScreen chamado, showEnter atual:", showEnter);
     setShowEnter((prev) => !prev);
     progress.value = withTiming(showEnter ? 0 : 1, {
       duration: 900,
@@ -161,19 +161,16 @@ export default function Index() {
     else if (viewportHeight === 0) statusMessage = "Aguardando dimensões do layout...";
     else if (imageHeight === null) statusMessage = "Medindo dimensões...";
 
-    console.log("🔍 Loading state:", {
-      authLoading,
-      loading,
-      imageHeight,
-      viewportHeight,
-    });
+    // console.log("🔍 Loading state:", {
+    //   authLoading,
+    //   loading,
+    //   imageHeight,
+    //   viewportHeight,
+    // });
 
     return (
       <View
-        style={[
-          styles.container,
-          { justifyContent: "center", alignItems: "center", backgroundColor: "#ff4444" },
-        ]}
+        style={[styles.container, { justifyContent: "center", alignItems: "center" }]}
         onLayout={onLayoutRootView}
       >
         <ActivityIndicator size="large" color="#ffffff" />
@@ -190,7 +187,7 @@ export default function Index() {
     );
   }
 
-  console.log("🎨 Renderizando tela principal com animações");
+  // console.log("🎨 Renderizando tela principal com animações");
 
   return (
     <View style={styles.container} onLayout={onLayoutRootView}>

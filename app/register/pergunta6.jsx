@@ -11,40 +11,23 @@ import {
   View,
 } from "react-native";
 
-import { useRegistration } from "../../context/RegistrationContext";
+import { useRegistration } from "@/context/RegistrationContext";
 
 const options = ["SIM", "NÃO"];
 
 export default function Pergunta6() {
   const { registrationData, setRegistrationData } = useRegistration(); // Usa o hook
   const [selectedOption, setSelectedOption] = useState(() => {
-    // Verifica se já existe uma opção selecionada no contexto (o valor inicial no contexto é false)
-    const savedOption = registrationData.interageBem;
-    return savedOption !== false ? options.indexOf(savedOption) : null;
+    const saved = registrationData.interageBem;
+    const idx = options.indexOf(saved);
+    return idx !== -1 ? idx : null;
   });
 
   useEffect(() => {
-    // Atualiza o contexto com a opção selecionada
     if (selectedOption !== null) {
       setRegistrationData({ interageBem: options[selectedOption] });
     }
   }, [selectedOption]);
-
-  // const toggleButtonSelection = (index) => {
-  //   const isNenhuma = options[index] === "NENHUMA";
-
-  //   if (isNenhuma) {
-  //     setSelectedButtons((prev) => (prev.includes(index) ? [] : [index]));
-  //   } else {
-  //     setSelectedButtons((prev) => {
-  //       const hasNenhuma = prev.includes(options.indexOf("NENHUMA"));
-  //       if (hasNenhuma) return [index];
-  //       return prev.includes(index)
-  //         ? prev.filter((i) => i !== index)
-  //         : [...prev, index];
-  //     });
-  //   }
-  // };
 
   return (
     <ImageBackground

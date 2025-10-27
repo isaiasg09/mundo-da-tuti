@@ -14,6 +14,7 @@ import {
 
 import { GAME_DIFFICULTY_CONFIG } from "../constants/gameConfig";
 import { useGameProgress } from "../context/GameContext";
+import { logger } from "../utils/logger";
 
 import BackButton from "../components/backbutton";
 import Fish from "../components/fish";
@@ -91,7 +92,8 @@ export default function FishGame() {
   // Controla se o jogador já venceu o jogo (para mostrar a tela de sucesso)
   const [isGameWon, setIsGameWon] = useState(false);
 
-  const { gameProgress, setGameProgress, completeGame } = useGameProgress();
+  const { gameProgress, setGameProgress, completeGame, isCompletingGame } =
+    useGameProgress();
   const {
     pathId,
     gameId,
@@ -113,25 +115,13 @@ export default function FishGame() {
     if (isGameWon && !markedRef.current) {
       const gameIndex = Number(gameId);
       if (gameIndex && pathId) {
-        console.log(`[FishGame] Completando jogo com sync: ${pathId}.game${gameIndex}`);
-
-        // Usar a nova função que faz sync com Firebase
         const completeWithScore = async () => {
           try {
-            const result = await completeGame(pathId, gameIndex, correctAnswersCount);
-            if (result?.success) {
-              console.log(`[FishGame] ✅ Jogo completado e sincronizado!`);
-              if (result.nextGameUnlocked) {
-                console.log(`[FishGame] 🔓 Próximo jogo desbloqueado!`);
-              }
-              if (result.nextPathUnlocked) {
-                console.log(
-                  `[FishGame] 🎉 Próximo caminho desbloqueado: ${result.nextPathUnlocked}`
-                );
-              }
-            }
+            const result = await completeGame(pathId, gameIndex, correctAnswersCount, {
+              gameType,
+            });
           } catch (error) {
-            console.error("[FishGame] ❌ Erro ao completar jogo:", error);
+            logger.error("[FishGame] Erro ao completar jogo:", error);
             // Fallback para método local
             onWinMarkOnly(gameIndex);
           }
@@ -291,6 +281,7 @@ export default function FishGame() {
         completeLevel={completeLevel}
         message="Você Conseguiu!"
         subtitle="Você contou todos os peixes!"
+        isLoading={isCompletingGame}
       />
     );
   }

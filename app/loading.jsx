@@ -1,10 +1,7 @@
 import React, { useEffect, useRef } from "react";
-import { View, Image, StyleSheet, Text, TouchableOpacity, Animated } from "react-native";
-import { useRouter } from "expo-router";
+import { Animated, Image, Text, View } from "react-native";
 
 export default function Loading() {
-  const router = useRouter();
-
   const textoLogo = require("../assets/images/textologo.png");
   const tutiFesta = require("../assets/images/tuti_festa.png");
   const mundoImg = require("../assets/images/mundo.png");
@@ -40,11 +37,7 @@ export default function Loading() {
         ];
         await Promise.all(assets.map((a) => Asset.fromModule(a).downloadAsync()));
       } catch (e) {
-        // Se o pacote não estiver instalado, apenas ignore
-        if (!__DEV__) {
-          // Apenas em produção, para evitar spam de logs durante o desenvolvimento
-          console.warn("Pré-carregamento de assets indisponível:", e?.message);
-        }
+        // Se o pacote não estiver instalado, apenas ignore silenciosamente
       }
     })();
   }, []);
@@ -77,7 +70,6 @@ export default function Loading() {
         flex: 1,
         backgroundColor: "#fff6a5",
         alignItems: "center",
-        // justifyContent: "start",
         paddingTop: 50,
       }}
     >
@@ -85,7 +77,6 @@ export default function Loading() {
         source={textoLogo}
         style={{
           width: 300,
-          // backgroundColor: "white",
           height: 160,
         }}
         resizeMode="contain"
@@ -93,9 +84,7 @@ export default function Loading() {
       <Image
         source={tutiFesta}
         style={{
-          // width: 300,
           height: 380,
-          // backgroundColor: "white",
         }}
         resizeMode="contain"
       />
@@ -115,7 +104,6 @@ export default function Loading() {
           style={[
             {
               height: 150,
-              // outros estilos opcionais...
             },
             rotatingStyle,
           ]}
@@ -135,7 +123,3 @@ export default function Loading() {
     </View>
   );
 }
-
-// const styles = StyleSheet.create({
-//   container:
-// });

@@ -1,22 +1,21 @@
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
+  Dimensions,
   Image,
   ImageBackground,
   SafeAreaView,
-  Dimensions,
-  ActivityIndicator,
   ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import { router } from "expo-router";
 
-import PinkButton from "@/components/pinkbutton";
 import BackButton from "@/components/backbutton";
 import DefaultInput from "@/components/defaultinput";
+import PinkButton from "@/components/pinkbutton";
 
-import { useRegistration } from "../../context/RegistrationContext";
+import { useRegistration } from "@/context/RegistrationContext";
 
 const { width } = Dimensions.get("window");
 

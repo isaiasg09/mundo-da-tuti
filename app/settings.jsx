@@ -6,7 +6,7 @@ import {
   SafeAreaView,
   StyleSheet,
   Text,
-  TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -16,11 +16,42 @@ import BackButton from "../components/backbutton";
 import PinkButton from "../components/pinkbutton";
 
 import { useAuth } from "@/context/AuthContext";
+import { useGameProgress } from "@/context/GameContext";
+import GameProgressService from "@/services/gameProgressService";
+import { PROFILE_IMAGE_OPTIONS } from "../constants/paths";
+import { logger } from "../utils/logger";
 
 const { width } = Dimensions.get("window");
 
 export default function Settings() {
-  const { logout } = useAuth(); // Hook do contexto de autenticação
+  const { logout, user } = useAuth(); // Hook do contexto de autenticação
+  const { currentChildId } = useGameProgress();
+  const [childProfile, setChildProfile] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+
+  // Carregar perfil da criança atual
+  React.useEffect(() => {
+    loadChildProfile();
+  }, [currentChildId, user]);
+
+  const loadChildProfile = async () => {
+    if (!user || !currentChildId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const service = new GameProgressService();
+      const profiles = await service.getChildrenProfiles(user.uid);
+      const profile = profiles.find((p) => p.id === currentChildId);
+      setChildProfile(profile);
+    } catch (error) {
+      logger.error("Erro ao carregar perfil:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   function goToScreen(screenName) {
     router.navigate(`./${screenName}`);
@@ -36,13 +67,13 @@ export default function Settings() {
       {
         text: "Sair",
         onPress: async () => {
-          console.log("🚪 Iniciando logout...");
+          // console.log("🚪 Iniciando logout...");
           const result = await logout();
           if (result.success) {
-            console.log("✅ Logout realizado com sucesso");
+            // console.log("✅ Logout realizado com sucesso");
             router.replace("/login"); // Redireciona para a tela de login após logout
           } else {
-            console.error("❌ Erro no logout:", result.error);
+            logger.error("Erro no logout:", result.error);
             Alert.alert("Erro", "Não foi possível fazer logout. Tente novamente.");
           }
         },
@@ -62,23 +93,37 @@ export default function Settings() {
 
           <Text style={styles.title}>Configurações</Text>
 
-          <Image
-            source={require("../assets/images/poses_tuti/perfil_1.png")}
-            style={styles.foto}
-          />
+          {loading ? (
+            <View
+              style={[styles.foto, { justifyContent: "center", alignItems: "center" }]}
+            >
+              <Text style={{ color: "#666", fontFamily: "TTMilksCasualPie" }}>
+                Carregando...
+              </Text>
+            </View>
+          ) : (
+            <Image
+              source={
+                childProfile?.avatar
+                  ? PROFILE_IMAGE_OPTIONS.find(
+                      (option) => option.key === childProfile.avatar
+                    )?.source ||
+                    require("../assets/images/perfis/profile_placeholder.png")
+                  : require("../assets/images/perfis/profile_placeholder.png")
+              }
+              style={styles.foto}
+            />
+          )}
 
-          <Text style={styles.subTitle}> Mudar Avatar</Text>
+          <Text style={styles.childName}>
+            {loading ? "Carregando..." : childProfile?.name || "Nome da Criança"}
+          </Text>
 
-          {/* <ScrollView
-            keyboardShouldPersistTaps="handled"
-            style={{ backgroundColor: "white", }}
-          > */}
-          <TextInput
-            placeholder="USUÁRIO"
-            placeholderTextColor="#476bb4"
-            style={styles.input}
-          />
-          {/* </ScrollView> */}
+          <TouchableOpacity
+            onPress={() => router.push("/register/customizarperfil?mode=edit")}
+          >
+            <Text style={styles.subTitle}>Personalizar Perfil</Text>
+          </TouchableOpacity>
 
           <PinkButton
             title="SONS"
@@ -114,7 +159,6 @@ export default function Settings() {
               backgroundColor: "#ff78cb",
             }}
           />
-          
 
           <Text style={styles.subTitle}>Quem Somos?</Text>
 
@@ -163,6 +207,14 @@ export const styles = StyleSheet.create({
     color: "#9d59ff",
     fontSize: 24,
     fontFamily: "TTMilksCasualPie",
+  },
+
+  childName: {
+    color: "#004aad",
+    fontFamily: "TTMilksCasualPie",
+    fontSize: 20,
+    marginBottom: 10,
+    textAlign: "center",
   },
 
   subTitle: {

@@ -1,29 +1,25 @@
+import { useEffect, useState } from "react"; // useEffect pode ser removido se não usado para o fade-in do Reanimated
 import {
-  View,
-  Text,
-  StyleSheet,
+  Dimensions,
   Image,
   ImageBackground,
   SafeAreaView,
-  Dimensions,
-  ActivityIndicator,
+  StyleSheet,
+  Text,
   TouchableOpacity,
-  // Animated, // Removido - Usaremos Reanimated para o pop-up
-  ScrollView,
+  View,
 } from "react-native";
-import { useState, useEffect } from "react"; // useEffect pode ser removido se não usado para o fade-in do Reanimated
 
 // Importações do Reanimated
 import Animated, {
-  useSharedValue,
+  runOnJS,
   useAnimatedStyle,
+  useSharedValue,
   withTiming,
-  runOnJS, // Para executar funções JS a partir da UI thread (ex: setState)
-  // Easing, // Importe se precisar de easings específicos não padrão
 } from "react-native-reanimated";
 
+import { useRegistration } from "@/context/RegistrationContext";
 import { router } from "expo-router";
-import { useRegistration } from "../../context/RegistrationContext";
 
 // Seus componentes personalizados
 import BackButton from "@/components/backbutton";

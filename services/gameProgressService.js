@@ -2,13 +2,16 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   collection,
+  deleteField,
   doc,
   getDoc,
   getDocs,
   onSnapshot,
   serverTimestamp,
   setDoc,
+  updateDoc,
 } from "firebase/firestore";
+import { logger } from "../utils/logger";
 import { auth, firestore } from "./firebase";
 
 class GameProgressService {
@@ -73,7 +76,7 @@ class GameProgressService {
         molusco_perola: {
           status: "locked",
           games: {
-            game1: { status: "locked" },
+            game1: { status: "unlocked" },
             game2: { status: "locked" },
             game3: { status: "locked" },
             game4: { status: "locked" },
@@ -86,7 +89,7 @@ class GameProgressService {
         anemona: {
           status: "locked",
           games: {
-            game1: { status: "locked" },
+            game1: { status: "unlocked" },
             game2: { status: "locked" },
             game3: { status: "locked" },
             game4: { status: "locked" },
@@ -111,10 +114,10 @@ class GameProgressService {
       };
 
       await AsyncStorage.setItem(key, JSON.stringify(dataToSave));
-      console.log(`💾 Progresso salvo localmente para criança ${childId}: ${key}`);
+      logger.dev.sync(`Progresso salvo localmente para criança ${childId}: ${key}`);
       return { success: true };
     } catch (error) {
-      console.error("❌ Erro ao salvar progresso local:", error);
+      logger.error("Erro ao salvar progresso local:", error);
       return { success: false, error: error.message };
     }
   }
@@ -127,14 +130,16 @@ class GameProgressService {
 
       if (savedData) {
         const progress = JSON.parse(savedData);
-        console.log(`📱 Progresso carregado do local para criança ${childId}: ${key}`);
+        logger.dev.sync(`Progresso carregado do local para criança ${childId}: ${key}`);
         return progress;
       }
 
-      console.log(`📱 Nenhum progresso local encontrado para criança ${childId}: ${key}`);
+      logger.dev.sync(
+        `Nenhum progresso local encontrado para criança ${childId}: ${key}`
+      );
       return null;
     } catch (error) {
-      console.error("❌ Erro ao carregar progresso local:", error);
+      logger.error("Erro ao carregar progresso local:", error);
       return null;
     }
   }
@@ -142,11 +147,6 @@ class GameProgressService {
   // Salvar progresso completo de um jogo para criança específica
   async saveGameProgress(guardianId, childId, pathKey, gameKey, progressData) {
     try {
-      console.log(
-        `🎮 Salvando progresso para criança ${childId}: ${pathKey}/${gameKey}`,
-        progressData
-      );
-
       const progressRef = this.getProgressRef(guardianId, childId);
 
       // Primeiro, pega o progresso atual
@@ -192,7 +192,6 @@ class GameProgressService {
       // Salva localmente também
       await this.saveLocalProgress(guardianId, childId, currentProgress);
 
-      console.log("✅ Progresso salvo com sucesso");
       return { success: true, progress: currentProgress };
     } catch (error) {
       console.error("❌ Erro ao salvar progresso:", error);
@@ -218,7 +217,6 @@ class GameProgressService {
         };
 
         await AsyncStorage.setItem(storageKey, JSON.stringify(localProgress));
-        console.log("⚠️ Progresso salvo apenas localmente (Firebase falhou)");
 
         return { success: true, progress: localProgress };
       } catch (localError) {
@@ -232,10 +230,6 @@ class GameProgressService {
   async unlockNextGame(guardianId, childId, pathKey, currentGameNumber) {
     try {
       const nextGameKey = `game${currentGameNumber + 1}`;
-      console.log(
-        `🔓 Desbloqueando próximo jogo para criança ${childId}: ${pathKey}/${nextGameKey}`
-      );
-
       const progressRef = this.getProgressRef(guardianId, childId);
 
       // Pega progresso atual
@@ -245,18 +239,6 @@ class GameProgressService {
       if (currentDoc.exists()) {
         currentProgress = currentDoc.data().gameProgress || this.getDefaultProgress();
       }
-
-      // Debug: verificar estrutura atual
-      console.log(`🔍 Verificando se ${nextGameKey} existe em ${pathKey}`);
-      console.log(`🔍 Path existe:`, !!currentProgress.paths[pathKey]);
-      console.log(
-        `🔍 Games do path:`,
-        Object.keys(currentProgress.paths[pathKey]?.games || {})
-      );
-      console.log(
-        `🔍 Próximo jogo existe:`,
-        !!currentProgress.paths[pathKey]?.games[nextGameKey]
-      );
 
       // Verifica se o próximo jogo existe
       if (
@@ -281,12 +263,8 @@ class GameProgressService {
         // Salva localmente
         await this.saveLocalProgress(guardianId, childId, currentProgress);
 
-        console.log(`✅ Próximo jogo desbloqueado: ${nextGameKey}`);
         return { success: true, nextGame: nextGameKey, progress: currentProgress };
       } else {
-        console.log(
-          `ℹ️ Não há próximo jogo em ${pathKey} (próximo seria: ${nextGameKey})`
-        );
         return { success: true, nextGame: null, progress: currentProgress };
       }
     } catch (error) {
@@ -303,10 +281,6 @@ class GameProgressService {
 
       if (currentIndex < pathOrder.length - 1) {
         const nextPathKey = pathOrder[currentIndex + 1];
-        console.log(
-          `🛤️ Desbloqueando próximo caminho para criança ${childId}: ${nextPathKey}`
-        );
-
         const progressRef = this.getProgressRef(guardianId, childId);
 
         // Pega progresso atual
@@ -321,14 +295,10 @@ class GameProgressService {
         currentProgress.paths[currentPathKey].status = "completed";
 
         // Desbloqueia o próximo caminho
-        console.log(`🛤️ Desbloqueando próximo caminho: ${nextPathKey}`);
         currentProgress.paths[nextPathKey].status = "unlocked";
 
         if (currentProgress.paths[nextPathKey].games.game1) {
-          console.log(`🎮 Desbloqueando game1 do caminho: ${nextPathKey}`);
           currentProgress.paths[nextPathKey].games.game1.status = "unlocked";
-        } else {
-          console.log(`⚠️ Game1 não encontrado no caminho: ${nextPathKey}`);
         }
 
         // Salva no Firebase usando a nova estrutura
@@ -344,11 +314,9 @@ class GameProgressService {
         // Salva localmente
         await this.saveLocalProgress(guardianId, childId, currentProgress);
 
-        console.log(`✅ Próximo caminho desbloqueado: ${nextPathKey}`);
         return { success: true, nextPath: nextPathKey, progress: currentProgress };
       }
 
-      console.log(`ℹ️ Não há próximo caminho após ${currentPathKey}`);
       return { success: true, nextPath: null };
     } catch (error) {
       console.error("❌ Erro ao desbloquear próximo caminho:", error);
@@ -359,8 +327,6 @@ class GameProgressService {
   // Desbloquear um caminho específico
   async unlockPath(guardianId, childId, pathKey) {
     try {
-      console.log(`🔓 Desbloqueando caminho para criança ${childId}: ${pathKey}`);
-
       const progressRef = this.getProgressRef(guardianId, childId);
 
       // Pega progresso atual
@@ -396,7 +362,6 @@ class GameProgressService {
       // Salva localmente
       await this.saveLocalProgress(guardianId, childId, currentProgress);
 
-      console.log(`✅ Caminho desbloqueado: ${pathKey}`);
       return { success: true, pathKey: pathKey, progress: currentProgress };
     } catch (error) {
       console.error(`❌ Erro ao desbloquear caminho ${pathKey}:`, error);
@@ -407,15 +372,12 @@ class GameProgressService {
   // Carregar progresso de uma criança específica do Firebase
   async loadProgressFromFirebase(guardianId, childId) {
     try {
-      console.log(`📥 Carregando progresso da criança ${childId} do Firebase...`);
-
       // Tentar carregar da nova estrutura primeiro
       const progressRef = this.getProgressRef(guardianId, childId);
       const doc = await getDoc(progressRef);
 
       if (doc.exists()) {
         const data = doc.data();
-        console.log("✅ Progresso carregado do Firebase (nova estrutura)");
 
         // Extrair o gameProgress da estrutura do perfil
         const gameProgress = data.gameProgress || this.getDefaultProgress();
@@ -426,13 +388,11 @@ class GameProgressService {
         return { success: true, data: gameProgress };
       } else {
         // Tentar migrar da estrutura antiga
-        console.log("🔄 Tentando migrar da estrutura antiga...");
         const legacyRef = this.getLegacyProgressRef(guardianId, childId);
         const legacyDoc = await getDoc(legacyRef);
 
         if (legacyDoc.exists()) {
           const legacyData = legacyDoc.data();
-          console.log("📦 Dados encontrados na estrutura antiga, migrando...");
 
           const gameProgress = legacyData.gameProgress || legacyData;
 
@@ -444,12 +404,10 @@ class GameProgressService {
 
           return { success: true, data: gameProgress };
         } else {
-          console.log("📱 Progresso não encontrado no Firebase, tentando carregar local");
           const localProgress = await this.loadProgress(guardianId, childId);
           if (localProgress) {
             return { success: true, data: localProgress };
           } else {
-            console.log(`🆕 Criando progresso inicial para criança ${childId}`);
             const defaultProgress = this.getDefaultProgress();
             await this.saveLocalProgress(guardianId, childId, defaultProgress);
             return { success: true, data: defaultProgress };
@@ -473,8 +431,6 @@ class GameProgressService {
   // Migrar dados da estrutura antiga para a nova
   async migrateToNewStructure(guardianId, childId, gameProgress) {
     try {
-      console.log(`🔄 Migrando dados para nova estrutura - criança ${childId}`);
-
       const progressRef = this.getProgressRef(guardianId, childId);
 
       // Criar estrutura completa compatível com a nova arquitetura
@@ -486,6 +442,10 @@ class GameProgressService {
           genero: "",
           avatar_url: "👧", // Avatar padrão da criança
           data_nascimento: null,
+          level: 1, // Nível inicial
+          total_xp: 0, // XP total
+          xp_to_next_level: 30, // XP necessário para próximo nível (3 jogos * 10 XP)
+          total_games_completed: 0, // Total de jogos completados
           created_at: serverTimestamp(),
           updated_at: serverTimestamp(),
           active: true,
@@ -533,7 +493,44 @@ class GameProgressService {
           },
         },
 
-        achievements: {},
+        achievements: {
+          estudo_focado: {
+            title: "Estudo Focado",
+            description: "Complete sua primeira atividade",
+            unlocked: false,
+            unlocked_at: null,
+          },
+          imbativel: {
+            title: "Imbatível!",
+            description: "Desbloqueie o segundo caminho",
+            unlocked: false,
+            unlocked_at: null,
+          },
+          mestre_calculo: {
+            title: "Mestre do Cálculo",
+            description: "Complete 5 atividades",
+            unlocked: false,
+            unlocked_at: null,
+          },
+          explorador: {
+            title: "Explorador",
+            description: "Complete 10 atividades",
+            unlocked: false,
+            unlocked_at: null,
+          },
+          campeao: {
+            title: "Campeão",
+            description: "Desbloqueie o terceiro caminho",
+            unlocked: false,
+            unlocked_at: null,
+          },
+          dedicado: {
+            title: "Dedicado",
+            description: "Complete 15 atividades",
+            unlocked: false,
+            unlocked_at: null,
+          },
+        },
 
         statistics: {
           learning: {
@@ -555,7 +552,6 @@ class GameProgressService {
       // Salvar na nova estrutura
       await setDoc(progressRef, fullProfile);
 
-      console.log(`✅ Migração concluída para criança ${childId}`);
       return { success: true };
     } catch (error) {
       console.error(`❌ Erro na migração para criança ${childId}:`, error);
@@ -566,8 +562,6 @@ class GameProgressService {
   // Listener em tempo real para progresso de criança específica
   subscribeToProgress(guardianId, childId, callback) {
     try {
-      console.log(`👂 Configurando listener para criança ${childId}`);
-
       const progressRef = this.getProgressRef(guardianId, childId);
 
       this.unsubscribeProgress = onSnapshot(
@@ -575,7 +569,6 @@ class GameProgressService {
         (doc) => {
           if (doc.exists()) {
             const data = doc.data();
-            console.log(`📡 Progresso atualizado para criança ${childId}`);
 
             // Extrair gameProgress da estrutura do perfil
             const gameProgress = data.gameProgress || this.getDefaultProgress();
@@ -585,7 +578,6 @@ class GameProgressService {
 
             callback({ success: true, data: gameProgress });
           } else {
-            console.log(`📄 Documento não encontrado para criança ${childId}`);
             callback({ success: false, error: "Documento não encontrado" });
           }
         },
@@ -605,7 +597,6 @@ class GameProgressService {
   // Parar listener
   unsubscribeFromProgress() {
     if (this.unsubscribeProgress) {
-      console.log("🔇 Parando listener de progresso");
       this.unsubscribeProgress();
       this.unsubscribeProgress = null;
     }
@@ -614,47 +605,58 @@ class GameProgressService {
   // Completar jogo (método principal)
   async completeGame(guardianId, childId, pathKey, gameIndex, score) {
     try {
-      console.log(
-        `🎯 Completando jogo para criança ${childId}: ${pathKey}/game${gameIndex} - Score: ${score}`
-      );
-
       const gameKey = `game${gameIndex}`;
+      const progressRef = this.getProgressRef(guardianId, childId);
+
+      // Pegar progresso atual uma única vez
+      const currentDoc = await getDoc(progressRef);
+      let currentProgress = this.getDefaultProgress();
+
+      if (currentDoc.exists()) {
+        currentProgress = currentDoc.data().gameProgress || this.getDefaultProgress();
+      }
+
+      // Preparar todas as mudanças em uma única operação
+      const now = new Date().toISOString();
 
       // Dados do jogo completado
       const gameData = {
         status: "completed",
-        completed_at: new Date().toISOString(),
+        completed_at: now,
         best_score: score,
-        total_attempts: 1, // Por enquanto sempre 1, pode ser expandido
+        total_attempts: 1,
       };
 
-      // Salvar progresso do jogo
-      const result = await this.saveGameProgress(
-        guardianId,
-        childId,
-        pathKey,
-        gameKey,
-        gameData
-      );
+      // Atualizar jogo atual
+      if (!currentProgress.paths[pathKey]) {
+        currentProgress.paths[pathKey] = this.getDefaultProgress().paths[pathKey];
+      }
+      if (!currentProgress.paths[pathKey].games) {
+        currentProgress.paths[pathKey].games =
+          this.getDefaultProgress().paths[pathKey].games;
+      }
+
+      currentProgress.paths[pathKey].games[gameKey] = gameData;
+
+      // Verificar e desbloquear próximo jogo na mesma operação
+      const nextGameKey = `game${gameIndex + 1}`;
+      const nextGameExists = currentProgress.paths[pathKey].games[nextGameKey];
+
+      if (
+        nextGameExists &&
+        currentProgress.paths[pathKey].games[nextGameKey].status === "locked"
+      ) {
+        currentProgress.paths[pathKey].games[nextGameKey].status = "unlocked";
+      }
+
+      // Atualizar timestamps uma única vez
+      currentProgress.overall_progress.last_played = now;
+
+      // ÚNICA operação Firebase - batch update
+      const result = await this.batchUpdateProgress(guardianId, childId, currentProgress);
 
       if (!result.success) {
         return result;
-      }
-
-      let currentProgress = result.progress;
-
-      // Verificar se deve desbloquear próximo jogo
-      console.log(`🎮 Tentando desbloquear próximo jogo após completar game${gameIndex}`);
-      const nextGameResult = await this.unlockNextGame(
-        guardianId,
-        childId,
-        pathKey,
-        gameIndex
-      );
-      console.log(`🎮 Resultado do desbloqueio:`, nextGameResult);
-
-      if (nextGameResult.success && nextGameResult.progress) {
-        currentProgress = nextGameResult.progress;
       }
 
       // Verificar se completou todos os jogos do caminho
@@ -663,30 +665,117 @@ class GameProgressService {
         (game) => game.status === "completed"
       );
 
-      console.log(`🏁 Checking if path ${pathKey} is completed:`);
-      console.log(`🏁 All games completed: ${allGamesCompleted}`);
-      console.log(`🏁 Next game result: ${nextGameResult.nextGame}`);
-      console.log(
-        `🏁 Games status:`,
-        Object.keys(path.games).map((key) => `${key}: ${path.games[key].status}`)
-      );
+      if (allGamesCompleted) {
+        // Marcar path como completed, mas NÃO desbloquear próximo caminho
+        // O próximo caminho será desbloqueado apenas quando o usuário abrir o baú
+        const updatedProgressWithPathCompleted = { ...currentProgress };
+        if (!updatedProgressWithPathCompleted.paths[pathKey]) {
+          updatedProgressWithPathCompleted.paths[pathKey] = {};
+        }
+        updatedProgressWithPathCompleted.paths[pathKey].status = "completed";
 
-      if (allGamesCompleted && nextGameResult.nextGame === null) {
-        console.log(`🎯 Path ${pathKey} completed! Unlocking next path...`);
-        // Desbloquear próximo caminho
-        const nextPathResult = await this.unlockNextPath(guardianId, childId, pathKey);
-        console.log(`🎯 Next path unlock result:`, nextPathResult);
+        // Atualizar apenas o status do path sem desbloquear o próximo
+        const pathCompletedResult = await this.batchUpdateProgress(
+          guardianId,
+          childId,
+          updatedProgressWithPathCompleted
+        );
 
-        if (nextPathResult.success && nextPathResult.progress) {
-          currentProgress = nextPathResult.progress;
+        if (pathCompletedResult.success) {
+          currentProgress = pathCompletedResult.progress;
         }
       }
 
-      console.log(`✅ Jogo completado com sucesso para criança ${childId}`);
       return { success: true, progress: currentProgress };
     } catch (error) {
       console.error(`❌ Erro ao completar jogo para criança ${childId}:`, error);
       return { success: false, error: error.message };
+    }
+  }
+
+  // Método otimizado para batch updates
+  async batchUpdateProgress(guardianId, childId, operationsOrProgress) {
+    try {
+      const progressRef = this.getProgressRef(guardianId, childId);
+
+      // Se recebeu um array de operações, processar cada uma
+      if (Array.isArray(operationsOrProgress)) {
+        // Buscar o progresso atual
+        const progressResult = await this.loadProgressFromFirebase(guardianId, childId);
+        const currentProgress = progressResult.success
+          ? progressResult.data
+          : this.getDefaultProgress();
+        let updatedProgress = { ...currentProgress };
+
+        // Aplicar cada operação
+        for (const operation of operationsOrProgress) {
+          switch (operation.operation) {
+            case "unlockPath":
+              if (!updatedProgress.paths) updatedProgress.paths = {};
+              if (!updatedProgress.paths[operation.pathId]) {
+                updatedProgress.paths[operation.pathId] = {};
+              }
+              updatedProgress.paths[operation.pathId].status = "unlocked";
+              break;
+
+            case "setChestOpened":
+              if (!updatedProgress.paths) updatedProgress.paths = {};
+              if (!updatedProgress.paths[operation.pathId]) {
+                updatedProgress.paths[operation.pathId] = {};
+              }
+              updatedProgress.paths[operation.pathId].chestOpened = true;
+              break;
+          }
+        }
+
+        // Salvar o progresso atualizado
+        await updateDoc(progressRef, {
+          gameProgress: updatedProgress,
+          updated_at: serverTimestamp(),
+        });
+
+        // Salvar localmente
+        const storageKey = this.getStorageKey(guardianId, childId);
+        await AsyncStorage.setItem(storageKey, JSON.stringify(updatedProgress));
+
+        return { success: true, progress: updatedProgress };
+      } else {
+        // Comportamento original: recebeu progresso direto
+        const progress = operationsOrProgress;
+
+        // Uma única operação Firebase
+        await updateDoc(progressRef, {
+          gameProgress: progress,
+          updated_at: serverTimestamp(),
+        });
+
+        // Salvar localmente uma única vez
+        const storageKey = this.getStorageKey(guardianId, childId);
+        await AsyncStorage.setItem(storageKey, JSON.stringify(progress));
+
+        return { success: true, progress };
+      }
+    } catch (error) {
+      console.error(`❌ Erro no batch update para criança ${childId}:`, error);
+
+      // Fallback: salvar apenas localmente
+      try {
+        const storageKey = this.getStorageKey(guardianId, childId);
+        let progressToSave;
+        if (Array.isArray(operationsOrProgress)) {
+          const progressResult = await this.loadProgressFromFirebase(guardianId, childId);
+          progressToSave = progressResult.success
+            ? progressResult.data
+            : this.getDefaultProgress();
+        } else {
+          progressToSave = operationsOrProgress;
+        }
+        await AsyncStorage.setItem(storageKey, JSON.stringify(progressToSave));
+        return { success: true, progress: progressToSave };
+      } catch (localError) {
+        console.error("❌ Erro ao salvar localmente também:", localError);
+        return { success: false, error: localError.message };
+      }
     }
   }
 
@@ -695,8 +784,6 @@ class GameProgressService {
   // Buscar todos os perfis de crianças de um guardião
   async getChildrenProfiles(guardianId) {
     try {
-      console.log(`🔍 Buscando perfis de crianças para guardião ${guardianId}`);
-
       // Buscar perfis na coleção guardians/{guardianId}/children
       const childrenRef = collection(firestore, "guardians", guardianId, "children");
       const querySnapshot = await getDocs(childrenRef);
@@ -721,7 +808,6 @@ class GameProgressService {
         }
       });
 
-      console.log(`✅ Encontrados ${profiles.length} perfis de crianças`);
       return profiles;
     } catch (error) {
       console.error("❌ Erro ao buscar perfis de crianças:", error);
@@ -732,8 +818,6 @@ class GameProgressService {
   // Criar novo perfil de criança
   async createChildProfile(guardianId, childData) {
     try {
-      console.log(`🆕 Criando novo perfil de criança para guardião ${guardianId}`);
-
       // Encontrar próximo ID disponível
       const existingProfiles = await this.getChildrenProfiles(guardianId);
 
@@ -750,6 +834,10 @@ class GameProgressService {
           genero: childData.gender || "",
           avatar_url: childData.avatar || null, // Avatar da criança
           data_nascimento: null,
+          level: 1, // Nível inicial
+          total_xp: 0, // XP total
+          xp_to_next_level: 30, // XP necessário para próximo nível (3 jogos * 10 XP)
+          total_games_completed: 0, // Total de jogos completados
           created_at: serverTimestamp(),
           updated_at: serverTimestamp(),
           active: true,
@@ -825,7 +913,44 @@ class GameProgressService {
           },
         },
 
-        achievements: {},
+        achievements: {
+          estudo_focado: {
+            title: "Estudo Focado",
+            description: "Complete sua primeira atividade",
+            unlocked: false,
+            unlocked_at: null,
+          },
+          imbativel: {
+            title: "Imbatível!",
+            description: "Desbloqueie o segundo caminho",
+            unlocked: false,
+            unlocked_at: null,
+          },
+          mestre_calculo: {
+            title: "Mestre do Cálculo",
+            description: "Complete 5 atividades",
+            unlocked: false,
+            unlocked_at: null,
+          },
+          explorador: {
+            title: "Explorador",
+            description: "Complete 10 atividades",
+            unlocked: false,
+            unlocked_at: null,
+          },
+          campeao: {
+            title: "Campeão",
+            description: "Desbloqueie o terceiro caminho",
+            unlocked: false,
+            unlocked_at: null,
+          },
+          dedicado: {
+            title: "Dedicado",
+            description: "Complete 15 atividades",
+            unlocked: false,
+            unlocked_at: null,
+          },
+        },
 
         statistics: {
           learning: {
@@ -861,10 +986,39 @@ class GameProgressService {
         gender: childData.gender || null,
       };
 
-      console.log(`✅ Perfil criado com sucesso: ${newChildRef.id}`);
       return { success: true, profile: newProfile };
     } catch (error) {
       console.error("❌ Erro ao criar perfil de criança:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Atualizar perfil de criança existente
+  async updateChildProfile(guardianId, childId, profileUpdates) {
+    try {
+      const childRef = this.getProgressRef(guardianId, childId);
+
+      // Preparar os updates com timestamp
+      const updates = {};
+
+      if (profileUpdates.username) {
+        updates["profile.username"] = profileUpdates.username;
+        updates["profile.nome"] = profileUpdates.username; // Manter compatibilidade
+      }
+
+      if (profileUpdates.avatar_url) {
+        updates["profile.avatar_url"] = profileUpdates.avatar_url;
+      }
+
+      // Sempre atualizar o timestamp
+      updates["profile.updated_at"] = serverTimestamp();
+
+      // Aplicar as atualizações
+      await updateDoc(childRef, updates);
+
+      return { success: true };
+    } catch (error) {
+      console.error("❌ Erro ao atualizar perfil da criança:", error);
       return { success: false, error: error.message };
     }
   }
@@ -889,27 +1043,57 @@ class GameProgressService {
 
   async resetChildProgress(guardianId, childId) {
     try {
-      console.log(
-        `🔄 Resetando progresso da criança ${childId} para guardião ${guardianId}`
-      );
-
       const progressRef = this.getProgressRef(guardianId, childId);
       const initialProgress = this.getDefaultProgress();
 
-      // Resetar progresso no Firebase para o progresso inicial
+      // 1) Remover campos de estatística de cada jogo existente (best_score, total_attempts, completed_at)
+      try {
+        const currentDoc = await getDoc(progressRef);
+        if (currentDoc.exists()) {
+          const current = currentDoc.data()?.gameProgress || {};
+          const updates = {};
+
+          const paths = current.paths || {};
+          Object.keys(paths).forEach((pathKey) => {
+            const games = paths[pathKey]?.games || {};
+            Object.keys(games).forEach((gameKey) => {
+              updates[`gameProgress.paths.${pathKey}.games.${gameKey}.best_score`] =
+                deleteField();
+              updates[`gameProgress.paths.${pathKey}.games.${gameKey}.total_attempts`] =
+                deleteField();
+              updates[`gameProgress.paths.${pathKey}.games.${gameKey}.completed_at`] =
+                deleteField();
+            });
+          });
+
+          if (Object.keys(updates).length > 0) {
+            await updateDoc(progressRef, updates);
+          }
+        }
+      } catch (statsErr) {
+        console.warn("⚠️ Falha ao limpar estatísticas antes do reset:", statsErr);
+      }
+
+      // 2) Resetar progresso e conquistas no Firebase para o estado inicial
+      const resetAchievements = this.getDefaultAchievements();
+
       await setDoc(
         progressRef,
         {
           gameProgress: initialProgress,
+          achievements: resetAchievements,
+          "profile.level": 1,
+          "profile.total_xp": 0,
+          "profile.xp_to_next_level": 30,
+          "profile.total_games_completed": 0,
           "profile.updated_at": serverTimestamp(),
         },
         { merge: true }
       );
 
-      // Limpar progresso local
+      // 3) Limpar progresso local
       await this.clearLocalProgress(guardianId, childId);
 
-      console.log(`✅ Progresso da criança ${childId} resetado com sucesso`);
       return { success: true, progress: initialProgress };
     } catch (error) {
       console.error(`❌ Erro ao resetar progresso da criança ${childId}:`, error);
@@ -922,10 +1106,386 @@ class GameProgressService {
     try {
       const key = `@mdt:progress:${guardianId}:${childId}`;
       await AsyncStorage.removeItem(key);
-      console.log(`🗑️ Progresso local da criança ${childId} removido`);
     } catch (error) {
       console.error(`❌ Erro ao limpar progresso local da criança ${childId}:`, error);
     }
+  }
+
+  async updateLearningStats(guardianId, childId, stats = {}) {
+    try {
+      const { gameType, sessionMs, sessionMinutes, completed } = stats || {};
+      const progressRef = this.getProgressRef(guardianId, childId);
+
+      // Carregar doc atual
+      const snap = await getDoc(progressRef);
+      const data = snap.exists() ? snap.data() : {};
+
+      const learning = data?.statistics?.learning || {};
+      const prevTotal = Number(learning.total_playtime_minutes || 0);
+      const prevAvg = Number(learning.average_session_length || 0);
+      const prevSessions = Number(learning.sessions_count || 0);
+
+      // Normalizar minutos da sessão
+      let minutes = 0;
+      if (typeof sessionMinutes === "number") minutes = sessionMinutes;
+      else if (typeof sessionMs === "number") minutes = Math.round(sessionMs / 60000);
+      // mínimo de 1 min para não poluir com 0
+      if (!minutes || minutes < 1) minutes = 1;
+
+      const newSessions = prevSessions + 1;
+      const newTotal = prevTotal + minutes;
+      const newAvg = Math.round((prevAvg * prevSessions + minutes) / newSessions);
+
+      const updates = {
+        "statistics.learning.last_session": serverTimestamp(),
+        "statistics.learning.total_playtime_minutes": newTotal,
+        "statistics.learning.average_session_length": newAvg,
+        "statistics.learning.sessions_count": newSessions,
+      };
+
+      if (completed && gameType) {
+        const validTypes = ["memory", "word", "match", "fish", "plus", "minus"];
+        const key = validTypes.includes(gameType) ? gameType : null;
+        if (key) {
+          const byType = learning.games_completed_by_type || {};
+          const prev = Number(byType[key] || 0);
+          updates[`statistics.learning.games_completed_by_type.${key}`] = prev + 1;
+        }
+      }
+
+      await updateDoc(progressRef, updates);
+
+      // Se um jogo foi completado, atualizar XP, nível e conquistas
+      let profileUpdateResult = null;
+      if (completed) {
+        profileUpdateResult = await this.updateProfileProgress(guardianId, childId);
+      }
+
+      return {
+        success: true,
+        profileUpdate: profileUpdateResult,
+      };
+    } catch (error) {
+      console.error("❌ Erro ao atualizar estatísticas de aprendizado:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Atualizar progresso do perfil (XP, nível, conquistas)
+  async updateProfileProgress(guardianId, childId) {
+    try {
+      const progressRef = this.getProgressRef(guardianId, childId);
+      const snap = await getDoc(progressRef);
+
+      if (!snap.exists()) {
+        console.warn("⚠️ Documento do perfil não encontrado para atualizar progresso");
+        return { success: false, error: "Perfil não encontrado" };
+      }
+
+      const data = snap.data();
+      const gameProgress = data.gameProgress || {};
+      const previousAchievements = data.achievements || {};
+
+      // Calcular total de jogos completados
+      const totalGamesCompleted = this.calculateTotalGamesCompleted(gameProgress);
+
+      // Calcular XP (10 XP por jogo completado)
+      const xpPerGame = 10;
+      const totalXP = totalGamesCompleted * xpPerGame;
+
+      // Calcular nível (a cada 3 jogos = 1 nível, começando do nível 1)
+      const level = Math.floor(totalGamesCompleted / 3) + 1;
+      const xpToNextLevel = level * 3 * xpPerGame - totalXP;
+
+      // Verificar conquistas
+      const newAchievements = this.calculateAchievements(
+        gameProgress,
+        totalGamesCompleted,
+        previousAchievements
+      );
+
+      // Detectar conquistas recém-desbloqueadas
+      const newlyUnlocked = [];
+      Object.entries(newAchievements).forEach(([key, achievement]) => {
+        const previous = previousAchievements[key];
+        const wasLocked = !previous?.unlocked;
+        const isNowUnlocked = achievement.unlocked;
+
+        if (wasLocked && isNowUnlocked) {
+          newlyUnlocked.push({ key, achievement });
+        }
+      });
+
+      // Preparar resultado com conquistas antes de salvar no Firebase
+      const resultToReturn = {
+        success: true,
+        level,
+        totalXP,
+        totalGamesCompleted,
+        achievements: newAchievements,
+        newlyUnlocked: newlyUnlocked.map((unlock) => ({
+          key: unlock.key,
+          achievement: unlock.achievement,
+        })),
+      };
+
+      const updates = {
+        "profile.level": level,
+        "profile.total_xp": totalXP,
+        "profile.xp_to_next_level": Math.max(xpToNextLevel, 0),
+        "profile.total_games_completed": totalGamesCompleted,
+        "profile.updated_at": serverTimestamp(),
+        achievements: newAchievements,
+      };
+
+      await updateDoc(progressRef, updates);
+
+      return resultToReturn;
+    } catch (error) {
+      console.error("❌ Erro ao atualizar progresso do perfil:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Calcular total de jogos completados
+  calculateTotalGamesCompleted(gameProgress) {
+    let total = 0;
+    const paths = gameProgress.paths || {};
+
+    Object.values(paths).forEach((path) => {
+      const games = path.games || {};
+      Object.values(games).forEach((game) => {
+        if (game.status === "completed") {
+          total++;
+        }
+      });
+    });
+
+    return total;
+  }
+
+  // Calcular conquistas baseadas no progresso
+  calculateAchievements(gameProgress, totalGamesCompleted, previousAchievements = {}) {
+    const paths = gameProgress.paths || {};
+
+    const achievements = {};
+
+    // Primeira conquista - Complete seu primeiro jogo
+    const isFirstGameComplete = totalGamesCompleted >= 1;
+    achievements.primeira_conquista = {
+      title: "Primeira Conquista",
+      description: "Complete seu primeiro jogo",
+      unlocked: isFirstGameComplete,
+      unlocked_at:
+        isFirstGameComplete && !previousAchievements.primeira_conquista?.unlocked
+          ? serverTimestamp()
+          : previousAchievements.primeira_conquista?.unlocked_at || null,
+    };
+
+    // Estudo focado - Complete os primeiros 3 jogos fáceis do castelo
+    const casteloEasyGamesCompleted = this.countCompletedGamesInPath(paths.castelo, 3); // Apenas os primeiros 3
+    const isEstudoFocadoComplete = casteloEasyGamesCompleted >= 3;
+    achievements.estudo_focado = {
+      title: "Estudo Focado",
+      description: "Complete todos os jogos fáceis no castelo",
+      unlocked: isEstudoFocadoComplete,
+      unlocked_at:
+        isEstudoFocadoComplete && !previousAchievements.estudo_focado?.unlocked
+          ? serverTimestamp()
+          : previousAchievements.estudo_focado?.unlocked_at || null,
+    };
+
+    // Imbatível - Complete todos os jogos da pérola
+    const isImbativelComplete = paths.molusco_perola?.status === "completed";
+    achievements.imbativel = {
+      title: "Imbatível!",
+      description: "Complete todos os jogos da pérola",
+      unlocked: isImbativelComplete,
+      unlocked_at:
+        isImbativelComplete && !previousAchievements.imbativel?.unlocked
+          ? serverTimestamp()
+          : previousAchievements.imbativel?.unlocked_at || null,
+    };
+
+    // Mestre do Cálculo - Complete todos os jogos de cálculo (Plus e Minus)
+    const calculoGamesCompleted = this.countCalculoGamesCompleted(gameProgress);
+    const isMestreCalculoComplete = calculoGamesCompleted >= 6; // 3 plus + 3 minus
+    achievements.mestre_calculo = {
+      title: "Mestre do Cálculo",
+      description: "Complete todos os jogos de cálculo",
+      unlocked: isMestreCalculoComplete,
+      unlocked_at:
+        isMestreCalculoComplete && !previousAchievements.mestre_calculo?.unlocked
+          ? serverTimestamp()
+          : previousAchievements.mestre_calculo?.unlocked_at || null,
+    };
+
+    // Explorador do Castelo - Complete todos os jogos do castelo
+    const isExploradorComplete = paths.castelo?.status === "completed";
+    achievements.explorador = {
+      title: "Explorador do Castelo",
+      description: "Complete todos os jogos do castelo",
+      unlocked: isExploradorComplete,
+      unlocked_at:
+        isExploradorComplete && !previousAchievements.explorador?.unlocked
+          ? serverTimestamp()
+          : previousAchievements.explorador?.unlocked_at || null,
+    };
+
+    // Aventuras Submarinas (Campeão) - Complete todos os jogos da anêmona
+    const isCampeaoComplete = paths.anemona?.status === "completed";
+    achievements.campeao = {
+      title: "Aventuras Submarinas",
+      description: "Complete todos os jogos da anêmona",
+      unlocked: isCampeaoComplete,
+      unlocked_at:
+        isCampeaoComplete && !previousAchievements.campeao?.unlocked
+          ? serverTimestamp()
+          : previousAchievements.campeao?.unlocked_at || null,
+    };
+
+    // Aprendiz Dedicado - Complete 10 jogos diferentes
+    const isDedicadoComplete = totalGamesCompleted >= 10;
+    achievements.dedicado = {
+      title: "Aprendiz Dedicado",
+      description: "Complete 10 jogos diferentes",
+      unlocked: isDedicadoComplete,
+      unlocked_at:
+        isDedicadoComplete && !previousAchievements.dedicado?.unlocked
+          ? serverTimestamp()
+          : previousAchievements.dedicado?.unlocked_at || null,
+    };
+
+    // Aluno Brilhante - Complete 15 jogos diferentes
+    const isAlunoBrilhanteComplete = totalGamesCompleted >= 15;
+    achievements.aluno_brilhante = {
+      title: "Aluno Brilhante",
+      description: "Complete 15 jogos diferentes",
+      unlocked: isAlunoBrilhanteComplete,
+      unlocked_at:
+        isAlunoBrilhanteComplete && !previousAchievements.aluno_brilhante?.unlocked
+          ? serverTimestamp()
+          : previousAchievements.aluno_brilhante?.unlocked_at || null,
+    };
+
+    // TECECE - Complete todos os jogos do Mundo da Tuti
+    const isMundoCompletoComplete =
+      paths.castelo?.status === "completed" &&
+      paths.molusco_perola?.status === "completed" &&
+      paths.anemona?.status === "completed";
+    achievements.mundo_completo = {
+      title: "TECECE",
+      description: "Complete todos os jogos do Mundo da Tuti",
+      unlocked: isMundoCompletoComplete,
+      unlocked_at:
+        isMundoCompletoComplete && !previousAchievements.mundo_completo?.unlocked
+          ? serverTimestamp()
+          : previousAchievements.mundo_completo?.unlocked_at || null,
+    };
+
+    return achievements;
+  }
+
+  // Contar jogos de cálculo completados (plus e minus)
+  countCalculoGamesCompleted(gameProgress) {
+    let count = 0;
+    const paths = gameProgress.paths || {};
+
+    Object.values(paths).forEach((path) => {
+      const games = path.games || {};
+      Object.entries(games).forEach(([gameKey, game]) => {
+        // Verificar se é um jogo de cálculo baseado no tipo
+        const gameTypes = game.types || [];
+        if (gameTypes.includes("plus") || gameTypes.includes("minus")) {
+          if (game.status === "completed") {
+            count++;
+          }
+        }
+      });
+    });
+
+    return count;
+  }
+
+  // Obter conquistas no estado inicial (todas bloqueadas)
+  getDefaultAchievements() {
+    return {
+      primeira_conquista: {
+        title: "Primeira Conquista",
+        description: "Complete seu primeiro jogo",
+        unlocked: false,
+        unlocked_at: null,
+      },
+      estudo_focado: {
+        title: "Estudo Focado",
+        description: "Complete todos os jogos fáceis no castelo",
+        unlocked: false,
+        unlocked_at: null,
+      },
+      imbativel: {
+        title: "Imbatível!",
+        description: "Complete todos os jogos da pérola",
+        unlocked: false,
+        unlocked_at: null,
+      },
+      mestre_calculo: {
+        title: "Mestre do Cálculo",
+        description: "Complete todos os jogos de cálculo",
+        unlocked: false,
+        unlocked_at: null,
+      },
+      explorador: {
+        title: "Explorador do Castelo",
+        description: "Complete todos os jogos do castelo",
+        unlocked: false,
+        unlocked_at: null,
+      },
+      campeao: {
+        title: "Aventuras Submarinas",
+        description: "Complete todos os jogos da anêmona",
+        unlocked: false,
+        unlocked_at: null,
+      },
+      dedicado: {
+        title: "Aprendiz Dedicado",
+        description: "Complete 10 jogos diferentes",
+        unlocked: false,
+        unlocked_at: null,
+      },
+      aluno_brilhante: {
+        title: "Aluno Brilhante",
+        description: "Complete 15 jogos diferentes",
+        unlocked: false,
+        unlocked_at: null,
+      },
+      mundo_completo: {
+        title: "TECECE",
+        description: "Complete todos os jogos do Mundo da Tuti",
+        unlocked: false,
+        unlocked_at: null,
+      },
+    };
+  }
+
+  // Contar jogos completados em um caminho específico (limitado aos primeiros N jogos)
+  countCompletedGamesInPath(pathData, maxGames = null) {
+    if (!pathData || !pathData.games) return 0;
+
+    const games = pathData.games;
+    const gameKeys = Object.keys(games).sort(); // game1, game2, game3, etc.
+
+    let count = 0;
+    const limit = maxGames || gameKeys.length;
+
+    for (let i = 0; i < Math.min(limit, gameKeys.length); i++) {
+      const gameKey = gameKeys[i];
+      const game = games[gameKey];
+      if (game && game.status === "completed") {
+        count++;
+      }
+    }
+
+    return count;
   }
 }
 

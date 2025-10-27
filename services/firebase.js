@@ -26,10 +26,10 @@ let firestore;
 try {
   // Verificar se já foi inicializado
   if (getApps().length === 0) {
-    console.log("🔥 Inicializando Firebase...");
+    // console.log("🔥 Inicializando Firebase...");
     app = initializeApp(firebaseConfig);
   } else {
-    console.log("🔥 Firebase já inicializado");
+    // console.log("🔥 Firebase já inicializado");
     app = getApps()[0];
   }
 
@@ -38,12 +38,12 @@ try {
     auth = initializeAuth(app, {
       persistence: getReactNativePersistence(AsyncStorage),
     });
-    console.log("✅ Firebase Auth inicializado com AsyncStorage");
+    // console.log("✅ Firebase Auth inicializado com AsyncStorage");
   } catch (error) {
     // Se já foi inicializado, pegar a instância existente
     if (error.code === "auth/already-initialized") {
       auth = getAuth(app);
-      console.log("✅ Firebase Auth já inicializado");
+      // console.log("✅ Firebase Auth já inicializado");
     } else {
       throw error;
     }
@@ -51,7 +51,7 @@ try {
 
   // Inicializar Firestore
   firestore = getFirestore(app);
-  console.log("✅ Firestore inicializado");
+  // console.log("✅ Firestore inicializado");
 } catch (error) {
   console.error("❌ Erro ao inicializar Firebase:", error);
   throw error;

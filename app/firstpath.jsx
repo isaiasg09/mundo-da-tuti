@@ -36,7 +36,6 @@ export default function FirstPath() {
     }, [router])
   );
 
-  console.log("TELA FirstPath: pathId recebido da rota é:", pathId);
 
   return (
     <View style={styles.container}>

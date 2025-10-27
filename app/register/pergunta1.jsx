@@ -1,21 +1,20 @@
 import React, { useState } from "react"; // Removido useEffect se não estiver usando
 import {
-  View,
+  Dimensions,
+  ImageBackground,
+  ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  ImageBackground, // Image importada mas não usada, ImageBackground sim
-  SafeAreaView, // SafeAreaView importada mas não usada no seu return, ImageBackground é o root
-  Dimensions,
-  ScrollView,
+  View,
 } from "react-native";
 
 import { router } from "expo-router";
 
-import { useRegistration } from "../../context/RegistrationContext";
+import { useRegistration } from "@/context/RegistrationContext";
 
-import ProgressBar from "@/components/progressbar";
 import BackButton from "@/components/backbutton";
+import ProgressBar from "@/components/progressbar";
 
 const options = ["TEA", "TOD", "TDAH", "NENHUMA"];
 const { width: screenWidth } = Dimensions.get("window"); // Pega a largura da tela

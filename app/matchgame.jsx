@@ -1,12 +1,14 @@
 import { Image, ImageBackground } from "expo-image";
 import { useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dimensions, Text, TouchableOpacity, View } from "react-native";
 import { moderateScale, scale, verticalScale } from "react-native-size-matters";
 import GameHeader from "../components/gameheader";
 import WinScreen from "../components/winscreen";
 import { GAME_DIFFICULTY_CONFIG } from "../constants/gameConfig";
+import { useGameProgress } from "../context/GameContext";
 import { useLevelNavigation } from "../hooks/useLevelNavigation";
+import { logger } from "../utils/logger";
 
 import ProgressBar from "../components/progressbar";
 
@@ -54,6 +56,8 @@ export default function MatchGame() {
   const difficulty = params.difficulty || "facil";
   const config = GAME_DIFFICULTY_CONFIG.match[difficulty];
   const { openMap, openNext, completeLevel, onWinMarkOnly } = useLevelNavigation(pathId);
+  const { completeGame, isCompletingGame } = useGameProgress();
+  const markedRef = useRef(false);
 
   const [score, setScore] = useState(0);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -127,16 +131,27 @@ export default function MatchGame() {
     }
   };
 
-  // Marcar nível como completo quando o jogo é ganho
+  // useEffect para marcar como completo na vitória com Firebase sync
   useEffect(() => {
-    if (isGameWon && !levelCompleted) {
-      const current = Number(gameId);
-      if (current) {
-        setLevelCompleted(true); // Marca como completado para evitar múltiplas chamadas
-        onWinMarkOnly(current);
+    if (isGameWon && !markedRef.current) {
+      const gameIndex = Number(gameId);
+      if (gameIndex && pathId) {
+        const completeWithScore = async () => {
+          try {
+            const result = await completeGame(pathId, gameIndex, score, {
+              gameType: "match",
+            });
+          } catch (error) {
+            logger.error("[MatchGame] ❌ Erro ao completar jogo:", error);
+            onWinMarkOnly(gameIndex);
+          }
+        };
+
+        completeWithScore();
+        markedRef.current = true;
       }
     }
-  }, [isGameWon, gameId, onWinMarkOnly, levelCompleted]);
+  }, [isGameWon, gameId, pathId, completeGame, score, onWinMarkOnly]);
   const renderImageItem = (item) => {
     const isSelected = selectedImage === item.id;
     const isMatched = correctMatches.includes(item.id);
@@ -300,6 +315,7 @@ export default function MatchGame() {
             completeLevel={completeLevel}
             message="Parabéns!"
             subtitle="Você combinou todas as imagens com suas letras iniciais!"
+            isLoading={isCompletingGame}
           />
         )}
       </ImageBackground>

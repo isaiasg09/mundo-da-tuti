@@ -14,13 +14,51 @@ import ConfettiCannon from "react-native-confetti-cannon";
 
 import BackButton from "@/components/backbutton";
 import PinkButton from "@/components/pinkbutton";
+import { useGameProgress } from "@/context/GameContext";
 import { useRegistration } from "@/context/RegistrationContext";
+import { logger } from "../../utils/logger";
 
 const { width: screenWidth } = Dimensions.get("window");
+
+// Validação simples dos dados de cadastro
+const validateRegistrationData = (data) => {
+  const missing = [];
+  const messages = [];
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!data.email || !emailRegex.test(String(data.email).trim())) {
+    missing.push("email");
+    messages.push("Email inválido ou ausente.");
+  }
+  if (!data.senha || String(data.senha).length < 5) {
+    missing.push("senha");
+    messages.push("Senha deve ter pelo menos 5 caracteres.");
+  }
+  if (!data.codigoSeguranca || String(data.codigoSeguranca).trim().length < 4) {
+    missing.push("código de segurança");
+    messages.push("Código de segurança deve ter 4 dígitos.");
+  }
+  if (!data.nome || String(data.nome).trim().length === 0) {
+    missing.push("nome da criança");
+    messages.push("Informe o nome da criança.");
+  }
+  if (!data.idade || isNaN(parseInt(data.idade))) {
+    missing.push("idade");
+    messages.push("Informe a idade da criança.");
+  }
+
+  return {
+    ok: missing.length === 0,
+    missing,
+    message: messages.join("\n"),
+  };
+};
 
 export default function Concluido() {
   const confettiRef = useRef(null); // Referência para o ConfettiCannon
   const { submitRegistration, isLoading, error, registrationData } = useRegistration();
+  const { setActiveChild } = useGameProgress();
   const [registrationCompleted, setRegistrationCompleted] = useState(false);
 
   // Dispara os confetes automaticamente quando a tela carrega
@@ -45,11 +83,27 @@ export default function Concluido() {
     if (registrationCompleted) return; // Evita registro duplicado
 
     try {
-      console.log("Iniciando registro no Firebase com dados:", registrationData);
+      // console.log("Iniciando registro no Firebase com dados:", registrationData);
+
+      // Validação antes de enviar
+      const v = validateRegistrationData(registrationData || {});
+      if (!v.ok) {
+        Alert.alert(
+          "Dados incompletos",
+          v.message || "Preencha todos os campos obrigatórios do cadastro.",
+          [{ text: "OK" }]
+        );
+        return; // Não tenta registrar com dados inválidos
+      }
+
       const result = await submitRegistration();
 
-      if (result.success) {
-        console.log("Registro concluído com sucesso! Guardian ID:", result.guardianId);
+      if (result && result.success) {
+        // Seleciona imediatamente a criança criada como ativa
+        if (result.childId) {
+          setActiveChild(result.childId);
+        }
+        // console.log("Registro concluído com sucesso! Guardian ID:", result.guardianId);
         setRegistrationCompleted(true);
         // Disparar confetes adicionais quando o registro for bem-sucedido
         setTimeout(() => {
@@ -58,17 +112,18 @@ export default function Concluido() {
           }
         }, 1000);
       } else {
-        console.error("Erro no registro:", result.error);
+        const errMsg = result?.error || error || "Não foi possível concluir o cadastro.";
+        logger.error("Erro no registro:", errMsg);
         Alert.alert(
           "Erro no Cadastro",
-          `Não foi possível concluir o cadastro: ${result.error}`,
+          `Não foi possível concluir o cadastro: ${errMsg}`,
           [
             {
               text: "Tentar Novamente",
               onPress: () => setRegistrationCompleted(false),
             },
             {
-              text: "Cancelar",
+              text: "Voltar",
               onPress: () => router.back(),
               style: "cancel",
             },
@@ -76,14 +131,14 @@ export default function Concluido() {
         );
       }
     } catch (error) {
-      console.error("Erro inesperado no registro:", error);
+      logger.error("Erro inesperado no registro:", error);
       Alert.alert("Erro Inesperado", "Ocorreu um erro inesperado. Tente novamente.", [
         {
           text: "Tentar Novamente",
           onPress: () => setRegistrationCompleted(false),
         },
         {
-          text: "Cancelar",
+          text: "Voltar",
           onPress: () => router.back(),
           style: "cancel",
         },

@@ -1,21 +1,19 @@
-import { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  ImageBackground,
-  SafeAreaView,
-  Dimensions,
-  ActivityIndicator,
-  TouchableOpacity,
-} from "react-native";
 import BackButton from "@/components/backbutton";
 import DefaultInput from "@/components/defaultinput";
 import PinkButton from "@/components/pinkbutton";
 import { router } from "expo-router";
+import { useState } from "react";
+import {
+  Dimensions,
+  Image,
+  ImageBackground,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
-import { useRegistration } from "../../context/RegistrationContext";
+import { useRegistration } from "@/context/RegistrationContext";
 
 const { width } = Dimensions.get("window");
 
@@ -29,9 +27,10 @@ export default function Senha() {
       setMessage("A senha deve ter pelo menos 5 caracteres.");
     } else {
       // Salva a senha no contexto global ANTES de navegar
+      // console.log("Salvando senha no contexto:", senha);
       setRegistrationData({ senha: senha });
 
-      router.navigate("./codigo");
+      router.navigate("./parentesco");
     }
   }
 
@@ -64,6 +63,7 @@ export default function Senha() {
 
           <DefaultInput
             placeholder="Senha"
+            showToggle
             secureTextEntry={true}
             onChangeText={(text) => setSenha(text)}
           />

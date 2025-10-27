@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Image,
   ImageBackground,
   StyleSheet,
   Text,
@@ -14,6 +15,7 @@ import {
 } from "react-native";
 import { moderateScale, scale, verticalScale } from "react-native-size-matters";
 import BackButton from "../components/backbutton";
+import { PROFILE_IMAGE_OPTIONS } from "../constants/paths";
 import { useAuth } from "../context/AuthContext";
 import { useGameProgress } from "../context/GameContext";
 import GameProgressService from "../services/gameProgressService";
@@ -56,19 +58,16 @@ export default function ChildSelector() {
 
   const handleChildSelect = async (childId) => {
     if (isSelecting) return;
-    if (isSelected) return;
+    if (selectedChild === childId) return;
 
     setIsSelecting(true);
     try {
-      console.log(`👶 Selecionando criança: ${childId}`);
-
       // Atualizar criança ativa
       setActiveChild(childId);
       setSelectedChild(childId);
 
       // Aguardar um pouco para mostrar feedback visual
       setTimeout(() => {
-        console.log(`✅ Criança ${childId} selecionada, indo para home`);
         router.replace("/home");
       }, 1000);
     } catch (error) {
@@ -145,7 +144,18 @@ export default function ChildSelector() {
                   <View
                     style={[styles.avatarContainer, { backgroundColor: child.color }]}
                   >
-                    <Text style={styles.avatar}>{child.avatar}</Text>
+                    <Image
+                      source={
+                        child.avatar && typeof child.avatar === "string"
+                          ? PROFILE_IMAGE_OPTIONS.find(
+                              (option) => option.key === child.avatar
+                            )?.source ||
+                            require("../assets/images/perfis/profile_placeholder.png")
+                          : require("../assets/images/perfis/profile_placeholder.png")
+                      }
+                      style={styles.avatarImage}
+                      resizeMode="cover"
+                    />
                     {isCurrentlySelecting && (
                       <View style={styles.loadingOverlay}>
                         <ActivityIndicator size="small" color="white" />
@@ -265,6 +275,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: verticalScale(15),
     position: "relative",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: scale(40),
   },
   avatar: {
     fontSize: moderateScale(40),

@@ -16,7 +16,9 @@ import BackButton from "../components/backbutton";
 import ProgressBar from "../components/progressbar"; // Importe sua ProgressBar
 import WinScreen from "../components/winscreen";
 import { GAME_DIFFICULTY_CONFIG } from "../constants/gameConfig"; // Importa nossa configuração
+import { useGameProgress } from "../context/GameContext";
 import { useLevelNavigation } from "../hooks/useLevelNavigation";
+import { logger } from "../utils/logger";
 
 // da pra mudar isso aqui pro gameconfig pra aumentar a dificuldade
 const TOTAL_ROUNDS = 5;
@@ -64,6 +66,7 @@ export default function MinusGame() {
   const config = GAME_DIFFICULTY_CONFIG[gameType][difficulty];
 
   const { onWinMarkOnly, openNext, openMap, completeLevel } = useLevelNavigation(pathId);
+  const { completeGame, isCompletingGame } = useGameProgress();
 
   const [num1, setNum1] = useState(0);
   const [num2, setNum2] = useState(0);
@@ -114,27 +117,31 @@ export default function MinusGame() {
     generateNewQuestion();
   }, []);
 
-  // Efeito para verificar se o jogo foi ganho e marcar como completo
+  // useEffect para marcar como completo na vitória com Firebase sync
   useEffect(() => {
-    if (isGameWon) {
-      console.log(`[MinusGame] Game won! pathId=${pathId}, gameId=${gameId}`);
-      // marca conclusão uma única vez
-      const current = Number(gameId);
-      if (!markedRef.current && current) {
-        console.log(`[MinusGame] Calling onWinMarkOnly with level: ${current}`);
-        onWinMarkOnly(current);
+    if (isGameWon && !markedRef.current) {
+      const gameIndex = Number(gameId);
+      if (gameIndex && pathId) {
+        const completeWithScore = async () => {
+          try {
+            const result = await completeGame(pathId, gameIndex, correctAnswersCount, {
+              gameType: "minus",
+            });
+          } catch (error) {
+            logger.error("[MinusGame] ❌ Erro ao completar jogo:", error);
+            onWinMarkOnly(gameIndex);
+          }
+        };
+
+        completeWithScore();
         markedRef.current = true;
-      } else {
-        console.log(
-          `[MinusGame] Not calling onWinMarkOnly - markedRef.current=${markedRef.current}, current=${current}`
-        );
       }
       // Inicia confetti se disponível
       if (confettiRef.current) {
         setTimeout(() => confettiRef.current.start(), 100);
       }
     }
-  }, [isGameWon, gameId, onWinMarkOnly]);
+  }, [isGameWon, gameId, pathId, completeGame, correctAnswersCount, onWinMarkOnly]);
 
   // Lógica para quando uma resposta é pressionada
   const handlePress = (value) => {
@@ -186,6 +193,7 @@ export default function MinusGame() {
         completeLevel={completeLevel}
         message="Muito bem!"
         subtitle="Você dominou as subtrações!"
+        isLoading={isCompletingGame}
       />
     );
   }

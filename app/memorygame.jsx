@@ -19,7 +19,9 @@ import Animated, {
 import { scale, verticalScale } from "react-native-size-matters";
 
 import { GAME_DIFFICULTY_CONFIG } from "../constants/gameConfig";
+import { useGameProgress } from "../context/GameContext";
 import { useLevelNavigation } from "../hooks/useLevelNavigation";
+import { logger } from "../utils/logger";
 
 import { Image, ImageBackground } from "expo-image";
 import GameHeader from "../components/gameheader";
@@ -137,6 +139,8 @@ export default function MemoryGame() {
     gameType = "memory", // Pega o parâmetro de tipo de jogo da rota mas deixa o padrão como memória
   } = useLocalSearchParams();
   const { openMap, openNext, completeLevel, onWinMarkOnly } = useLevelNavigation(pathId);
+  const { completeGame, isCompletingGame } = useGameProgress();
+  const markedRef = useRef(false);
 
   // Pega as configurações para a dificuldade atual nas constantes
   const config = GAME_DIFFICULTY_CONFIG[gameType][difficulty];
@@ -172,7 +176,7 @@ export default function MemoryGame() {
       idealColumns = Math.min(maxPossibleColumns, 3);
     }
 
-    console.log("Colunas calculadas:", idealColumns, "para", totalCards, "cartas");
+    // console.log("Colunas calculadas:", idealColumns, "para", totalCards, "cartas");
     return idealColumns;
   };
 
@@ -245,16 +249,27 @@ export default function MemoryGame() {
     }
   }, [matchedCards, config.pairs]);
 
-  // Marcar nível como completo quando o jogo é ganho
+  // useEffect para marcar como completo na vitória com Firebase sync
   useEffect(() => {
-    if (isGameWon && !levelCompleted) {
-      const current = Number(gameId);
-      if (current) {
-        setLevelCompleted(true); // Marca como completado para evitar múltiplas chamadas
-        onWinMarkOnly(current);
+    if (isGameWon && !markedRef.current) {
+      const gameIndex = Number(gameId);
+      if (gameIndex && pathId) {
+        const completeWithScore = async () => {
+          try {
+            const result = await completeGame(pathId, gameIndex, matchedPairs, {
+              gameType,
+            });
+          } catch (error) {
+            logger.error("[MemoryGame] ❌ Erro ao completar jogo:", error);
+            onWinMarkOnly(gameIndex);
+          }
+        };
+
+        completeWithScore();
+        markedRef.current = true;
       }
     }
-  }, [isGameWon, gameId, onWinMarkOnly, levelCompleted]);
+  }, [isGameWon, gameId, pathId, completeGame, matchedPairs, onWinMarkOnly]);
 
   // Lógica de virar carta
   const flipCard = (uniqueId) => {
@@ -380,6 +395,7 @@ export default function MemoryGame() {
             completeLevel={completeLevel}
             message="Você ganhou!"
             subtitle="Você combinou todos os pares e completou o jogo de memória!"
+            isLoading={isCompletingGame}
           />
         )}
       </ImageBackground>

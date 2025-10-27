@@ -7,7 +7,6 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import ConfettiCannon from "react-native-confetti-cannon";
 
 export default function WinScreen({
   pathId,
@@ -22,6 +21,7 @@ export default function WinScreen({
   showContinue = true,
   customMessage,
   visible = true,
+  isLoading = false, // Novo prop para loading state
 }) {
   // Usar uma key única para forçar recriação do componente confetti a cada vitória
   const [componentKey, setComponentKey] = useState(Date.now());
@@ -89,10 +89,9 @@ export default function WinScreen({
     // Usar apenas openNext para navegar, pois o nível já foi marcado como completo quando ganhou
     if (openNext && gameId) {
       try {
-        openNext(Number(gameId));
+        router.push(`/${pathId}?gameId=${nextGameIndex}`);
       } catch (e) {
-        console.log("Erro ao abrir próximo nível:", e);
-        if (openMap) openMap();
+        onOpenMap();
       }
     } else if (onContinue) {
       onContinue();
@@ -116,7 +115,7 @@ export default function WinScreen({
 
   return (
     <View style={styles.winContainer}>
-      <ConfettiCannon
+      {/* <ConfettiCannon
         key={componentKey} // Força recriação do componente
         ref={confettiRef}
         count={100} // Reduzido ainda mais para melhor performance
@@ -126,7 +125,7 @@ export default function WinScreen({
         fallSpeed={4000} // Acelera ainda mais a queda
         explosionSpeed={300} // Reduz velocidade da explosão
         colors={["#ff6b6b", "#4ecdc4", "#45b7d1", "#f9ca24", "#6c5ce7"]} // Cores fixas para evitar cálculos
-      />
+      /> */}
 
       <Text style={styles.winTitle}>{displayMessage}</Text>
 
@@ -142,13 +141,23 @@ export default function WinScreen({
 
       <View style={styles.buttonContainer}>
         {showContinue && (openNext || onContinue) && (
-          <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-            <Text style={styles.buttonText}>PRÓXIMO NÍVEL</Text>
+          <TouchableOpacity
+            style={[styles.continueButton, isLoading && styles.buttonDisabled]}
+            onPress={handleContinue}
+            disabled={isLoading}
+          >
+            <Text style={styles.buttonText}>
+              {isLoading ? "SALVANDO..." : "PRÓXIMO NÍVEL"}
+            </Text>
           </TouchableOpacity>
         )}
 
         {handleBackToMap && (
-          <TouchableOpacity style={styles.mapButton} onPress={handleBackToMap}>
+          <TouchableOpacity
+            style={[styles.mapButton, isLoading && styles.buttonDisabled]}
+            onPress={handleBackToMap}
+            disabled={isLoading}
+          >
             <Text style={[styles.buttonText, { color: "#9d59ff" }]}>
               VOLTAR AO CAMINHO
             </Text>
@@ -223,5 +232,9 @@ const styles = StyleSheet.create({
     fontFamily: "TTMilksCasualPie",
     color: "#fff",
     textAlign: "center",
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+    backgroundColor: "#cccccc",
   },
 });
