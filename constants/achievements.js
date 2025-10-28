@@ -42,6 +42,6 @@ export const ACHIEVEMENTS = {
   9: {
     title: "TECECE",
     description: "Complete todos os jogos do Mundo da Tuti.",
-    image: require("../assets/images/conquistas/conquistatecece.jpg"),
+    image: require("../assets/images/conquistas/conquistatecece.png"),
   },
 };
