@@ -3,13 +3,14 @@ import { RegistrationProvider } from "@/context/RegistrationContext";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { Text, View } from "react-native";
 import "react-native-reanimated";
 import AchievementNotification from "../components/achievementnotification";
 import {
-  AchievementProvider,
-  useAchievementContext,
+    AchievementProvider,
+    useAchievementContext,
 } from "../context/AchievementContext";
 import { GameProvider } from "../context/GameContext";
 
@@ -44,6 +45,7 @@ export default function RootLayout() {
       <AchievementProvider>
         <GameProvider>
           <RegistrationProvider>
+            <StatusBar style="light" hidden={true} />
             <Stack
               screenOptions={{
                 headerShown: false,
