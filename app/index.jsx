@@ -254,12 +254,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#ff66c4",
     borderRadius: 10,
     padding: 12,
-    width: 120,
     alignItems: "center",
   },
   buttonText: {
     fontFamily: "TTMilksCasualPie",
-    fontSize: 20,
+    fontSize: 30,
     color: "#fff",
     textAlign: "center",
     textTransform: "uppercase",

@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { useLocalSearchParams } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Dimensions, ImageBackground, Text, TouchableOpacity, View } from "react-native";
 import { moderateScale, scale, verticalScale } from "react-native-size-matters";
 import GameHeader from "../components/gameheader";
@@ -180,7 +180,7 @@ export default function WordGame() {
       if (gameIndex && pathId) {
         const completeWithScore = async () => {
           try {
-            const result = await completeGame(pathId, gameIndex, wordsCompleted, {
+            const result = await completeGame(pathId, gameIndex, 1, {
               gameType: "word",
             });
           } catch (error) {
@@ -193,7 +193,7 @@ export default function WordGame() {
         markedRef.current = true;
       }
     }
-  }, [isGameWon, gameId, pathId, completeGame, wordsCompleted, onWinMarkOnly]);
+  }, [isGameWon, gameId, pathId, completeGame, onWinMarkOnly]);
 
   // Animação de shake quando há erro
   useEffect(() => {

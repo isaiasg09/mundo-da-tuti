@@ -237,17 +237,6 @@ export default function Login() {
             {/* </View> */}
 
             <View style={styles.passwordOptionsContainer}>
-              <TouchableOpacity onPress={() => setStayConnected(!stayConnected)}>
-                <View style={styles.checkboxContainer}>
-                  <TouchableOpacity
-                    style={[styles.checkboxBox, stayConnected && styles.checkboxChecked]}
-                    onPress={() => setStayConnected(!stayConnected)}
-                  >
-                    {stayConnected && <View style={styles.checkboxTick} />}
-                  </TouchableOpacity>
-                  <Text style={styles.checkboxLabel}>MANTENHA-ME CONECTADO</Text>
-                </View>
-              </TouchableOpacity>
               <TouchableOpacity
               //  onPress={}
               >
@@ -479,22 +468,24 @@ const styles = StyleSheet.create({
   },
   Register: {
     marginTop: 9,
-    fontSize: 18,
+    fontSize: 16,
     alignItems: "center",
     fontFamily: "TTMilksCasualPie",
     color: "#5483c4",
+    textAlign: "center"
   },
   linkText: {
     color: "#ff9eda",
     alignItems: "center",
-    fontSize: 18,
+    // fontSize: 18,
     justifyContent: "center",
     fontFamily: "TTMilksCasualPie",
+    textAlign: "center"
   },
   helpBubble: {
     // position: "absolute",
     // bottom: 50,
-    marginTop: "20%",
+    marginTop: "10%",
   },
   helpImage: {
     width: 80,

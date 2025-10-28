@@ -1046,7 +1046,7 @@ class GameProgressService {
       const progressRef = this.getProgressRef(guardianId, childId);
       const initialProgress = this.getDefaultProgress();
 
-      // 1) Remover campos de estatística de cada jogo existente (best_score, total_attempts, completed_at)
+      // 1) Remover campos de estatística de cada jogo existente e resetar baús (best_score, total_attempts, completed_at, chestOpened)
       try {
         const currentDoc = await getDoc(progressRef);
         if (currentDoc.exists()) {
@@ -1055,6 +1055,12 @@ class GameProgressService {
 
           const paths = current.paths || {};
           Object.keys(paths).forEach((pathKey) => {
+            // Resetar baú do caminho (se existir)
+            if (paths[pathKey]?.chestOpened) {
+              updates[`gameProgress.paths.${pathKey}.chestOpened`] = deleteField();
+            }
+
+            // Resetar estatísticas dos jogos
             const games = paths[pathKey]?.games || {};
             Object.keys(games).forEach((gameKey) => {
               updates[`gameProgress.paths.${pathKey}.games.${gameKey}.best_score`] =
@@ -1071,7 +1077,7 @@ class GameProgressService {
           }
         }
       } catch (statsErr) {
-        console.warn("⚠️ Falha ao limpar estatísticas antes do reset:", statsErr);
+        console.warn("⚠️ Falha ao limpar estatísticas e baús antes do reset:", statsErr);
       }
 
       // 2) Resetar progresso e conquistas no Firebase para o estado inicial
@@ -1087,6 +1093,19 @@ class GameProgressService {
           "profile.xp_to_next_level": 30,
           "profile.total_games_completed": 0,
           "profile.updated_at": serverTimestamp(),
+          // Resetar estatísticas de aprendizado
+          "statistics.learning.total_playtime_minutes": 0,
+          "statistics.learning.average_session_length": 0,
+          "statistics.learning.sessions_count": 0,
+          "statistics.learning.games_completed_by_type": {
+            memory: 0,
+            word: 0,
+            match: 0,
+            fish: 0,
+            soma: 0,
+            subtracao: 0,
+          },
+          "statistics.learning.last_session": null,
         },
         { merge: true }
       );
@@ -1104,8 +1123,9 @@ class GameProgressService {
   // Limpar progresso local específico de uma criança
   async clearLocalProgress(guardianId, childId) {
     try {
-      const key = `@mdt:progress:${guardianId}:${childId}`;
+      const key = this.getStorageKey(guardianId, childId);
       await AsyncStorage.removeItem(key);
+      console.log(`✅ Progresso local limpo para criança ${childId}`);
     } catch (error) {
       console.error(`❌ Erro ao limpar progresso local da criança ${childId}:`, error);
     }
@@ -1144,7 +1164,7 @@ class GameProgressService {
       };
 
       if (completed && gameType) {
-        const validTypes = ["memory", "word", "match", "fish", "plus", "minus"];
+        const validTypes = ["memory", "word", "match", "fish", "soma", "subtracao"];
         const key = validTypes.includes(gameType) ? gameType : null;
         if (key) {
           const byType = learning.games_completed_by_type || {};
@@ -1307,9 +1327,9 @@ class GameProgressService {
           : previousAchievements.imbativel?.unlocked_at || null,
     };
 
-    // Mestre do Cálculo - Complete todos os jogos de cálculo (Plus e Minus)
+    // Mestre do Cálculo - Complete todos os jogos de cálculo (Soma e Subtração)
     const calculoGamesCompleted = this.countCalculoGamesCompleted(gameProgress);
-    const isMestreCalculoComplete = calculoGamesCompleted >= 6; // 3 plus + 3 minus
+    const isMestreCalculoComplete = calculoGamesCompleted >= 4; // 2 soma + 2 subtração
     achievements.mestre_calculo = {
       title: "Mestre do Cálculo",
       description: "Complete todos os jogos de cálculo",
@@ -1386,23 +1406,26 @@ class GameProgressService {
     return achievements;
   }
 
-  // Contar jogos de cálculo completados (plus e minus)
+  // Contar jogos de cálculo completados (soma e subtração)
   countCalculoGamesCompleted(gameProgress) {
     let count = 0;
     const paths = gameProgress.paths || {};
 
-    Object.values(paths).forEach((path) => {
-      const games = path.games || {};
-      Object.entries(games).forEach(([gameKey, game]) => {
-        // Verificar se é um jogo de cálculo baseado no tipo
-        const gameTypes = game.types || [];
-        if (gameTypes.includes("plus") || gameTypes.includes("minus")) {
-          if (game.status === "completed") {
-            count++;
-          }
+    // Especificamente contar jogos de soma e subtração do castelo
+    const casteloPath = paths.castelo;
+    if (casteloPath && casteloPath.games) {
+      const games = casteloPath.games;
+      
+      // Jogos de cálculo são: game2 (soma fácil), game3 (subtração fácil), game5 (subtração difícil), game6 (soma difícil)
+      const calculoGameIds = ['game2', 'game3', 'game5', 'game6'];
+      
+      calculoGameIds.forEach(gameId => {
+        const game = games[gameId];
+        if (game && game.status === "completed") {
+          count++;
         }
       });
-    });
+    }
 
     return count;
   }

@@ -1,4 +1,5 @@
-import { StyleSheet, Text, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, Dimensions } from "react-native";
+import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 
 export default function PinkButton({ title, style, ...rest }) {
   return (
@@ -8,29 +9,27 @@ export default function PinkButton({ title, style, ...rest }) {
   );
 }
 
+const { width: screenWidth } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
   button: {
-    width: 175,
-    // height: 50,
-    padding: 20,
+    minWidth: scale(140),
+    maxWidth: screenWidth * 0.8, // 80% da largura da tela
+    width: '100%',
+    paddingHorizontal: scale(20),
+    paddingVertical: verticalScale(15),
     backgroundColor: "#ff66c4",
-    borderRadius: 20,
+    borderRadius: moderateScale(20),
     justifyContent: "center",
     alignItems: "center",
   },
 
-  // text: {
-  //   color: "#fff",
-  //   fontFamily: "Fredoka_600SemiBold",
-  //   fontSize: 25,
-  //   padding: 5,
-  // },
-
   Vtext: {
     color: "#fff",
     fontFamily: "TTMilksCasualPie",
-    fontSize: 22,
-    // padding: 5,
+    fontSize: moderateScale(20),
+    textAlign: 'center',
+    flexShrink: 1, // Permite que o texto se ajuste se necessário
   },
 
   elevation: {

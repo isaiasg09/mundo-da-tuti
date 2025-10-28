@@ -94,7 +94,6 @@ const AchievementNotification = ({ achievement, visible, onHide, onPress }) => {
             </View>
           </View>
 
-          <Text style={styles.tapHint}>Toque para ver detalhes</Text>
         </View>
       </TouchableOpacity>
     </Animated.View>

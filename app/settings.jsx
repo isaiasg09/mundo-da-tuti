@@ -130,7 +130,6 @@ export default function Settings() {
             onPress={() => goToScreen("sons")}
             style={{
               width: "75%",
-              height: 50,
               padding: 0,
               marginTop: 20,
               elevation: 0,
@@ -142,7 +141,6 @@ export default function Settings() {
             onPress={() => goToScreen("preferencias")}
             style={{
               width: "75%",
-              height: 50,
               padding: 0,
               elevation: 0,
               backgroundColor: "#ff66c4",
@@ -153,7 +151,6 @@ export default function Settings() {
             onPress={() => goToScreen("priv_cod")}
             style={{
               width: "75%",
-              height: 50,
               padding: 0,
               elevation: 0,
               backgroundColor: "#ff78cb",
