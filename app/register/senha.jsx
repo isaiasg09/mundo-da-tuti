@@ -23,8 +23,8 @@ export default function Senha() {
   const { registrationData, setRegistrationData } = useRegistration(); // Usa o hook
 
   function handleGoNext() {
-    if (senha.length < 5) {
-      setMessage("A senha deve ter pelo menos 5 caracteres.");
+    if (senha.length < 6) {
+      setMessage("A senha deve ter pelo menos 6 caracteres.");
     } else {
       // Salva a senha no contexto global ANTES de navegar
       // console.log("Salvando senha no contexto:", senha);
@@ -69,8 +69,8 @@ export default function Senha() {
           />
 
           <Text style={styles.subtitle}>
-            {/* change text content if senha lenght < 5 but only after press button */}
-            {message || "A senha deve ter pelo menos 5 caracteres."}
+            {/* change text content if senha length < 6 but only after press button */}
+            {message || "A senha deve ter pelo menos 6 caracteres."}
           </Text>
 
           <Image

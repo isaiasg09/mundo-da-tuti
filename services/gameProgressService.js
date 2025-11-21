@@ -781,15 +781,40 @@ class GameProgressService {
 
   // === FUNÇÕES DE GERENCIAMENTO DE PERFIS ===
 
-  // Buscar todos os perfis de crianças de um guardião
+  /**
+   * Buscar todos os perfis de crianças de um guardião
+   * Implementa verificações de segurança para evitar erros de permissão durante o registro
+   * @param {string} guardianId - ID do guardião/responsável
+   * @returns {Array} Lista de perfis das crianças
+   */
   async getChildrenProfiles(guardianId) {
     try {
+      // Verificar se o guardianId existe
+      if (!guardianId) {
+        logger.dev.sync("guardianId não fornecido para getChildrenProfiles");
+        return [];
+      }
+
+      // Verificar se há usuário autenticado
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        logger.dev.sync("Usuário não autenticado, retornando perfis vazios");
+        return [];
+      }
+
+      // Verificar se o guardianId corresponde ao usuário atual (segurança)
+      if (currentUser.uid !== guardianId) {
+        logger.dev.sync("guardianId não corresponde ao usuário atual");
+        return [];
+      }
+
       // Buscar perfis na coleção guardians/{guardianId}/children
       const childrenRef = collection(firestore, "guardians", guardianId, "children");
       const querySnapshot = await getDocs(childrenRef);
 
       const profiles = [];
 
+      // Processar cada documento de criança encontrado
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         const profile = data.profile;
@@ -810,12 +835,26 @@ class GameProgressService {
 
       return profiles;
     } catch (error) {
-      console.error("❌ Erro ao buscar perfis de crianças:", error);
+      logger.error("❌ Erro ao buscar perfis de crianças:", error);
+
+      // Tratamento específico para erro de permissão durante registro (usuário não autenticado)
+      if (error.code === "permission-denied" && !auth.currentUser) {
+        logger.dev.sync(
+          "Erro de permissão durante registro - retornando perfis vazios silenciosamente"
+        );
+        return [];
+      }
+
       return [];
     }
   }
 
-  // Criar novo perfil de criança
+  /**
+   * Criar novo perfil de criança
+   * @param {string} guardianId - ID do guardião/responsável
+   * @param {object} childData - Dados da criança (nome, idade, etc.)
+   * @returns {object} Resultado da operação com o perfil criado
+   */
   async createChildProfile(guardianId, childData) {
     try {
       // Encontrar próximo ID disponível
@@ -1415,11 +1454,11 @@ class GameProgressService {
     const casteloPath = paths.castelo;
     if (casteloPath && casteloPath.games) {
       const games = casteloPath.games;
-      
+
       // Jogos de cálculo são: game2 (soma fácil), game3 (subtração fácil), game5 (subtração difícil), game6 (soma difícil)
-      const calculoGameIds = ['game2', 'game3', 'game5', 'game6'];
-      
-      calculoGameIds.forEach(gameId => {
+      const calculoGameIds = ["game2", "game3", "game5", "game6"];
+
+      calculoGameIds.forEach((gameId) => {
         const game = games[gameId];
         if (game && game.status === "completed") {
           count++;

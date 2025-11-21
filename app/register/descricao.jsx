@@ -48,7 +48,8 @@ export default function Descricao() {
         <View style={styles.header}>
           <Text style={styles.title}>DESCRIÇÃO PERSONALIZADA</Text>
           <Text style={styles.instruction}>
-            Conte-nos mais sobre a criança (opcional):
+            Conte-nos mais sobre {registrationData.nome?.toUpperCase() || "A CRIANÇA"}{" "}
+            (opcional):
           </Text>
           <Text style={styles.question}>
             Descreva características, gostos, dificuldades ou qualquer informação que

@@ -129,7 +129,7 @@ export default function CustomizarPerfil() {
 
   const handleSave = async () => {
     const trimmedUsername = username.trim();
-    if (trimmedUsername === "") {
+    if (trimmedUsername === "" || trimmedUsername.length < 6) {
       setIsUsernameValid(false);
       return;
     }
@@ -268,7 +268,7 @@ export default function CustomizarPerfil() {
               textAlign: "center",
             }}
           >
-            Nome de usuário inválido!
+            Nome de usuário inválido! {"\n"} Deve conter pelo menos 6 caracteres
           </Text>
         )}
 
@@ -340,7 +340,7 @@ export default function CustomizarPerfil() {
           onPress={handleSave}
           disabled={saving}
           style={{
-            marginTop: "15%",
+            marginTop: "5%",
             opacity: saving ? 0.6 : 1,
             padding: 10,
             // paddingHorizontal: 20,

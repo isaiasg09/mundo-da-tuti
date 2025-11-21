@@ -22,22 +22,48 @@ import DefaultInput from "@/components/defaultinput";
 import PinkButton from "@/components/pinkbutton";
 
 import { useRegistration } from "@/context/RegistrationContext";
+import AuthService from "@/services/authService";
 
 const { width } = Dimensions.get("window");
 
 function EmailPage() {
   const [isEmailValid, setIsEmailValid] = useState(true);
   const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const { registrationData, setRegistrationData } = useRegistration(); // Usa o hook
 
-  function handleGoNext() {
-    if (!validateEmail(email)) {
-      setIsEmailValid(validateEmail(email));
-    } else {
-      // Salva o email no contexto global ANTES de navegar
-      setRegistrationData({ email: email });
+  async function handleGoNext() {
+    // Limpar erros anteriores
+    setErrorMessage("");
+    setIsEmailValid(true);
 
+    // Validar formato do email
+    if (!validateEmail(email)) {
+      setIsEmailValid(false);
+      return;
+    }
+
+    // Mostrar loading
+    setIsLoading(true);
+
+    try {
+      // Verificar se email já existe
+      const emailExists = await AuthService.checkEmailExists(email);
+
+      if (emailExists) {
+        setErrorMessage("Este email já está sendo usado por outra conta.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Email está disponível, salvar no contexto e navegar
+      setRegistrationData({ email: email });
+      setIsLoading(false);
       router.navigate("./senha");
+    } catch (error) {
+      setErrorMessage("Erro ao verificar email. Tente novamente.");
+      setIsLoading(false);
     }
   }
 
@@ -76,20 +102,17 @@ function EmailPage() {
             <DefaultInput
               placeholder="Email do Responsável"
               keyboardType="email-address"
-              onChangeText={(text) => setEmail(text)}
+              onChangeText={(text) => {
+                setEmail(text);
+                // Limpar erros quando usuário começar a digitar
+                if (errorMessage) setErrorMessage("");
+                if (!isEmailValid) setIsEmailValid(true);
+              }}
             />
 
-            {!isEmailValid && (
-              <Text
-                style={{
-                  color: "#ff0000",
-                  fontSize: 16,
-                  fontFamily: "TTMilksCasualPie",
-                }}
-              >
-                Email inválido!
-              </Text>
-            )}
+            {!isEmailValid && <Text style={styles.errorText}>Email inválido!</Text>}
+
+            {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
             <Image
               source={require("@/assets/images/poses_tuti/tuti_oi.png")}
@@ -98,9 +121,13 @@ function EmailPage() {
             />
 
             <PinkButton
-              title="Próximo"
+              title={isLoading ? "Verificando..." : "Próximo"}
               onPress={handleGoNext}
-              style={{ marginTop: 20 }}
+              style={{
+                marginTop: 20,
+                opacity: isLoading ? 0.6 : 1,
+              }}
+              disabled={isLoading}
             />
           </View>
         </ImageBackground>
@@ -153,6 +180,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  errorText: {
+    color: "#ff0000",
+    fontSize: 16,
+    fontFamily: "TTMilksCasualPie",
+    textAlign: "center",
+    textTransform: "uppercase",
   },
 });
 

@@ -41,9 +41,14 @@ export default function Pergunta5() {
         </View>
 
         <View style={styles.header}>
-          <Text style={styles.title}>SOBRE A CRIANÇA</Text>
+          <Text style={styles.title}>
+            SOBRE {registrationData.nome?.toUpperCase() || "A CRIANÇA"}
+          </Text>
           <Text style={styles.instruction}>MARQUE COM SIM OU NÃO:</Text>
-          <Text style={styles.question}>O NOME SE DISTRAI COM FACILIDADE?</Text>
+          <Text style={styles.question}>
+            {registrationData.nome?.toUpperCase() || "A CRIANÇA"} SE DISTRAI COM
+            FACILIDADE?
+          </Text>
         </View>
 
         {/* Imagem da tartaruga - fora do header */}

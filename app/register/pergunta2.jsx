@@ -44,9 +44,13 @@ export default function Pergunta2() {
         </View>
 
         <View style={styles.header}>
-          <Text style={styles.title}>SOBRE A CRIANÇA</Text>
+          <Text style={styles.title}>
+            SOBRE {registrationData.nome?.toUpperCase() || "A CRIANÇA"}
+          </Text>
           <Text style={styles.instruction}>MARQUE COM SIM OU NÃO:</Text>
-          <Text style={styles.question}>O {"NOME"} É MUITO AGITADO?</Text>
+          <Text style={styles.question}>
+            {registrationData.nome?.toUpperCase() || "A CRIANÇA"} É MUITO AGITADO(A)?
+          </Text>
         </View>
 
         <Image

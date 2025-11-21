@@ -272,7 +272,6 @@ export default function PlusGame() {
                     style={[
                       styles.bubbleText,
                       bubble.value >= 10 ? styles.doubleDigit : styles.singleDigit,
-                      { color: bubble.color },
                     ]}
                   >
                     {bubble.value}
@@ -396,7 +395,7 @@ const styles = StyleSheet.create({
   bubbleText: {
     fontFamily: "TTMilksCasualPie",
     textAlign: "center",
-    // Posição e tamanho agora são mais simples
+    color: "rgb(255, 93, 93)",
   },
   singleDigit: {
     // Para números com 1 dígito

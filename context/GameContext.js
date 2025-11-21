@@ -67,10 +67,9 @@ export const GameProvider = ({ children }) => {
   // Carregar primeira criança automaticamente quando usuário faz login
   useEffect(() => {
     if (isAuthenticated && user && !currentChildId) {
-      // console.log("� Usuário logado, buscando primeira criança...");
       loadFirstChild();
     } else if (!isAuthenticated) {
-      console.log("🚪 Usuário não logado, usando progresso inicial");
+      logger.dev.auth("Usuário não logado, usando progresso inicial");
       setCurrentChildId(null);
       setGameProgress(initialGameProgress);
       setIsLoading(false);
@@ -80,34 +79,41 @@ export const GameProvider = ({ children }) => {
   // Carregar progresso quando usuário/criança mudam
   useEffect(() => {
     if (isAuthenticated && user && currentChildId) {
-      // console.log(
-      //   `🔄 Carregando progresso - Usuário: ${user.uid}, Criança: ${currentChildId}`
-      // );
       loadProgressFromFirebase();
     }
   }, [isAuthenticated, user, currentChildId]);
 
-  // Carregar primeira criança disponível
+  /**
+   * Carregar primeira criança disponível do usuário logado
+   * Inclui retry logic para lidar com latência na criação de perfis
+   */
   const loadFirstChild = async () => {
     try {
+      // Verificar se ainda estamos autenticados antes de tentar carregar perfis
+      if (!isAuthenticated || !user) {
+        logger.dev.auth("Usuário não está mais autenticado, cancelando carregamento");
+        setIsLoading(false);
+        return;
+      }
+
       const profiles = await gameService.getChildrenProfiles(user.uid);
       if (profiles.length > 0) {
         const firstChild = profiles[0];
-        // console.log(
-        //   `👶 Primeira criança encontrada: ${firstChild.id} (${firstChild.name})`
-        // );
         setCurrentChildId(firstChild.id);
       } else {
-        console.log("⚠️ Nenhum perfil de criança encontrado");
+        logger.dev.sync("Nenhum perfil de criança encontrado");
         // Tenta novamente após um pequeno atraso, pois o perfil pode ter acabado de ser criado
         setTimeout(async () => {
-          // console.log("🔁 Rechecando perfis de crianças após criação...");
+          // Verificar novamente se ainda estamos autenticados antes do retry
+          if (!isAuthenticated || !user) {
+            logger.dev.auth("Usuário não está mais autenticado, cancelando retry");
+            setIsLoading(false);
+            return;
+          }
+
           const retry = await gameService.getChildrenProfiles(user.uid);
           if (retry.length > 0) {
             const first = retry[0];
-            // console.log(
-            //   `👶 Encontrada na segunda tentativa: ${first.id} (${first.name})`
-            // );
             setCurrentChildId(first.id);
           } else {
             setIsLoading(false);

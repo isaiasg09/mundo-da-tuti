@@ -43,9 +43,14 @@ export default function Pergunta4() {
         </View>
 
         <View style={styles.header}>
-          <Text style={styles.title}>SOBRE A CRIANÇA</Text>
+          <Text style={styles.title}>
+            SOBRE {registrationData.nome?.toUpperCase() || "A CRIANÇA"}
+          </Text>
           <Text style={styles.instruction}>MARQUE COM SIM OU NÃO:</Text>
-          <Text style={styles.question}>FAZ BIRRAS INTENSAS COM FREQUÊNCIA?</Text>
+          <Text style={styles.question}>
+            {registrationData.nome?.toUpperCase() || "A CRIANÇA"} FAZ BIRRAS INTENSAS COM
+            FREQUÊNCIA?
+          </Text>
           <Image
             source={require("@/assets/images/poses_tuti/TutiBirra.png")}
             style={styles.birraImage}

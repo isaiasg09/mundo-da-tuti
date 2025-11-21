@@ -59,10 +59,13 @@ export default function Pergunta3() {
         </View>
 
         <View style={styles.header}>
-          <Text style={styles.title}>SOBRE A CRIANÇA</Text>
+          <Text style={styles.title}>
+            SOBRE {registrationData.nome?.toUpperCase() || "A CRIANÇA"}
+          </Text>
           <Text style={styles.instruction}>MARQUE COM SIM OU NÃO:</Text>
           <Text style={styles.question}>
-            O NOME TEM DIFICULDADES EM SEGUIR INSTRUÇÕES?
+            {registrationData.nome?.toUpperCase() || "A CRIANÇA"} TEM DIFICULDADES EM
+            SEGUIR INSTRUÇÕES?
           </Text>
 
           <Image

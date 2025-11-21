@@ -16,11 +16,9 @@ import {
   doc,
   getDoc,
   getDocs,
-  query,
   serverTimestamp,
   setDoc,
   updateDoc,
-  where,
   writeBatch,
 } from "firebase/firestore";
 import { logger } from "../utils/logger";
@@ -28,12 +26,13 @@ import { auth, firestore } from "./firebase";
 import GameProgressService from "./gameProgressService";
 
 class AuthService {
-  // Helper para aguardar Firebase estar pronto
+  /**
+   * Aguarda o Firebase estar completamente inicializado
+   * @returns {Promise<boolean>} True quando Firebase estiver pronto
+   */
   async waitForFirebaseReady() {
     return new Promise((resolve) => {
       logger.dev.firebase("Verificando se Firebase está pronto...");
-      logger.dev.firebase("Auth disponível:", !!auth);
-      logger.dev.firebase("Firestore disponível:", !!firestore);
 
       if (auth && firestore) {
         logger.dev.firebase("Firebase está pronto!");
@@ -48,7 +47,13 @@ class AuthService {
     });
   }
 
-  // Helper para retry com delay
+  /**
+   * Executa uma operação com retry automático em caso de falha
+   * @param {Function} operation - Operação a ser executada
+   * @param {number} maxRetries - Número máximo de tentativas
+   * @param {number} delay - Delay entre tentativas (ms)
+   * @returns {Promise<any>} Resultado da operação
+   */
   async retryOperation(operation, maxRetries = 3, delay = 1000) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -67,7 +72,11 @@ class AuthService {
     }
   }
 
-  // Registrar responsável
+  /**
+   * Registrar novo guardião (responsável) e criar perfil da primeira criança
+   * @param {object} guardianData - Dados do responsável e da criança
+   * @returns {object} Resultado da operação com IDs criados
+   */
   async registerGuardian(guardianData) {
     try {
       logger.dev.auth("Iniciando registro do responsável...");
@@ -76,10 +85,7 @@ class AuthService {
       await this.waitForFirebaseReady();
 
       // Validar dados antes de enviar
-      logger.dev.auth("Email recebido:", `"${guardianData.email}"`);
-      logger.dev.auth("Senha recebida:", `"${guardianData.senha}"`);
-      logger.dev.auth("Tipo do email:", typeof guardianData.email);
-      logger.dev.auth("Comprimento do email:", guardianData.email?.length);
+      logger.dev.auth("Validando dados de entrada...");
 
       // Verificar se email e senha existem
       if (!guardianData.email || !guardianData.senha) {
@@ -95,8 +101,6 @@ class AuthService {
       // Usar retry logic para criar usuário
       const result = await this.retryOperation(async () => {
         logger.dev.firebase("Criando conta no Firebase Auth...");
-        logger.dev.firebase("Email final:", `"${guardianData.email}"`);
-        logger.dev.firebase("Senha final:", `"${guardianData.senha}"`);
 
         // 1. Criar conta no Firebase Auth
         return await createUserWithEmailAndPassword(
@@ -112,7 +116,6 @@ class AuthService {
       // 2. Criar documento do responsável no Firestore
       await setDoc(doc(firestore, "guardians", user.uid), {
         email: guardianData.email,
-        // nome: guardianData.usuario,
         codigo_seguranca: guardianData.codigoSeguranca,
         parentesco: guardianData.parentesco || "",
         created_at: serverTimestamp(),
@@ -133,28 +136,35 @@ class AuthService {
     }
   }
 
-  // Criar perfil da criança
+  /**
+   * Criar perfil da criança com configurações personalizadas baseadas no questionário
+   * @param {string} guardianId - ID do responsável
+   * @param {object} childData - Dados da criança do formulário de registro
+   * @returns {object} Resultado da operação com ID da criança
+   */
   async createChildProfile(guardianId, childData) {
     try {
       const childRef = doc(collection(firestore, "guardians", guardianId, "children"));
 
+      // Criar perfil completo da criança com dados do questionário
       await setDoc(childRef, {
         profile: {
           username: childData.usuario, // Nome/username da criança
-          nome: childData.nome, // Mantém também no nome para compatibilidade
+          nome: childData.nome, // Mantém compatibilidade
           idade: parseInt(childData.idade),
           genero: childData.genero || "",
-          avatar_url: childData.imagemPerfil || null, // Avatar da criança, não do guardião
+          avatar_url: childData.imagemPerfil || null, // Avatar da criança
           data_nascimento: null,
           level: 1, // Nível inicial
           total_xp: 0, // XP total
-          xp_to_next_level: 30, // XP necessário para próximo nível (3 jogos * 10 XP)
-          total_games_completed: 0, // Total de jogos completados
+          xp_to_next_level: 30, // XP necessário para próximo nível
+          total_games_completed: 0,
           created_at: serverTimestamp(),
           updated_at: serverTimestamp(),
           active: true,
         },
 
+        // Perfil comportamental baseado no questionário
         behavioral_profile: {
           se_distrai_facilmente: childData.seDistraiFacilmente || false,
           birras_intensas: childData.birrasIntensas || false,
@@ -169,6 +179,7 @@ class AuthService {
             nenhuma: childData.sindromesCrianca?.includes("NENHUMA") || false,
           },
 
+          // Configurações de acessibilidade automáticas
           configuracoes_acessibilidade: {
             texto_grande: false,
             alto_contraste: false,
@@ -186,8 +197,10 @@ class AuthService {
           updated_at: serverTimestamp(),
         },
 
+        // Progresso inicial dos jogos
         gameProgress: new GameProgressService().getDefaultProgress(),
 
+        // Configurações personalizadas baseadas no perfil
         settings: {
           audio: {
             sound_enabled: true,
@@ -201,6 +214,7 @@ class AuthService {
           },
         },
 
+        // Sistema de conquistas inicial
         achievements: {
           estudo_focado: {
             title: "Estudo Focado",
@@ -240,6 +254,7 @@ class AuthService {
           },
         },
 
+        // Estatísticas de aprendizado
         statistics: {
           learning: {
             total_playtime_minutes: 0,
@@ -264,7 +279,11 @@ class AuthService {
     }
   }
 
-  // Helpers
+  // === MÉTODOS AUXILIARES PARA PERSONALIZAÇÃO ===
+
+  /**
+   * Determina se a interface deve ser simplificada baseado no perfil da criança
+   */
   shouldSimplifyInterface(childData) {
     return (
       childData.dificuldadeInstrucoes ||
@@ -458,16 +477,46 @@ class AuthService {
   }
 
   /**
-   * Verificar se um email já existe
+   * Verificar se um email já existe usando Firebase Auth
+   * Este método é mais confiável que consultar Firestore diretamente
+   * pois não requer permissões especiais durante o registro
    */
   async checkEmailExists(email) {
     try {
-      const guardiansRef = collection(firestore, "guardians");
-      const q = query(guardiansRef, where("email", "==", email.toLowerCase()));
-      const querySnapshot = await getDocs(q);
-      return !querySnapshot.empty;
+      // Normalizar email para consistência
+      const normalizedEmail = email.toLowerCase().trim();
+
+      // Tentar criar uma conta temporária para verificar se o email já existe
+      // Este é o método mais confiável pois não depende de permissões do Firestore
+      try {
+        const tempUserCredential = await createUserWithEmailAndPassword(
+          auth,
+          normalizedEmail,
+          "temp-password-123456"
+        );
+
+        // Se chegou aqui, o email não existia. Deletar a conta temporária imediatamente
+        try {
+          await deleteUser(tempUserCredential.user);
+        } catch (deleteError) {
+          logger.dev.auth("⚠️ Falha ao deletar conta temporária:", deleteError);
+        }
+
+        return false; // Email não existe (disponível)
+      } catch (createError) {
+        // Se o erro for 'email-already-in-use', significa que o email já existe
+        if (createError.code === "auth/email-already-in-use") {
+          return true; // Email já existe
+        }
+
+        // Para outros erros (weak-password, invalid-email, etc.), considerar como email disponível
+        logger.dev.auth("Erro na criação temporária:", createError.code);
+        return false;
+      }
     } catch (error) {
-      console.error("❌ Erro ao verificar email:", error);
+      logger.error("❌ Erro geral na verificação de email:", error);
+
+      // Em caso de erro, assumir que o email está disponível para não bloquear o registro
       return false;
     }
   }

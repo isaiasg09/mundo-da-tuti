@@ -44,7 +44,8 @@ export default function Pergunta6() {
           <Text style={styles.title}>ESTA QUASE COMPLETO!</Text>
           <Text style={styles.instruction}>MARQUE COM SIM OU NÃO:</Text>
           <Text style={styles.question}>
-            INTERAGE BEM COM {"\n"} OUTRAS CRIANÇAS E ADULTOS?
+            {registrationData.nome?.toUpperCase() || "A CRIANÇA"} INTERAGE BEM COM {"\n"}{" "}
+            OUTRAS CRIANÇAS E ADULTOS?
           </Text>
         </View>
 

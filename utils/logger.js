@@ -3,32 +3,33 @@
 
 /**
  * Sistema de logging condicional
- * - Em desenvolvimento (__DEV__ = true): todos os logs são exibidos
- * - Em produção (__DEV__ = false): apenas logs de erro críticos são exibidos
+ * - Em desenvolvimento (__DEV__ = true): logs específicos são exibidos
+ * - Em produção (__DEV__ = false): apenas logs críticos são exibidos
  */
 
 // Verifica se estamos em ambiente de desenvolvimento
 const isDevelopment = __DEV__ || process.env.NODE_ENV === "development";
 
 /**
- * Logger minimalista - apenas logs essenciais
- * Removemos a maioria dos logs de desenvolvimento para produção limpa
+ * Logger para desenvolvimento - apenas logs essenciais
  */
 export const devLog = {
-  // Desabilitados por padrão - apenas erros essenciais
-  log: () => {},
+  // Logs básicos (desabilitados por padrão para reduzir verbosidade)
+  log: () => {}, // Desabilitado - use logger.dev.auth, sync, etc. para logs específicos
   info: () => {},
-  warn: () => {},
+  warn: isDevelopment ? console.warn : () => {},
   debug: () => {},
 
-  // Logs específicos desabilitados - apenas para debug crítico se necessário
-  auth: () => {},
-  game: () => {},
-  firebase: () => {},
-  navigation: () => {},
-  achievement: () => {},
-  sync: () => {},
-  progress: () => {},
+  // Logs específicos por categoria (habilitados em desenvolvimento)
+  auth: isDevelopment ? (...args) => console.log("🔐 [AUTH]", ...args) : () => {},
+  game: isDevelopment ? (...args) => console.log("🎮 [GAME]", ...args) : () => {},
+  firebase: isDevelopment ? (...args) => console.log("🔥 [FIREBASE]", ...args) : () => {},
+  navigation: isDevelopment ? (...args) => console.log("📍 [NAV]", ...args) : () => {},
+  achievement: isDevelopment
+    ? (...args) => console.log("🏆 [ACHIEVEMENT]", ...args)
+    : () => {},
+  sync: isDevelopment ? (...args) => console.log("🔄 [SYNC]", ...args) : () => {},
+  progress: isDevelopment ? (...args) => console.log("📊 [PROGRESS]", ...args) : () => {},
 };
 
 /**
@@ -37,6 +38,8 @@ export const devLog = {
 export const prodLog = {
   error: console.error,
   critical: (...args) => console.error("🚨 [CRITICAL]", ...args),
+  userAction: (...args) => console.log("👤 [USER]", ...args),
+  systemEvent: (...args) => console.log("⚙️ [SYSTEM]", ...args),
 };
 
 /**
@@ -77,12 +80,10 @@ export const logger = {
  *
  * // Logs que só aparecem em desenvolvimento
  * logger.dev.auth('Usuario logado:', userId);
- * logger.dev.game('Jogo iniciado:', gameData);
- * logger.dev.log('Debug info:', data);
+ * logger.dev.sync('Dados sincronizados:', data);
  *
  * // Logs que sempre aparecem (produção)
  * logger.error('Erro crítico:', error);
- * logger.critical('Sistema falhou:', details);
  * logger.userAction('Usuario completou jogo:', gameId);
  *
  * // Logs condicionais

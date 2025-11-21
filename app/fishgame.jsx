@@ -347,9 +347,7 @@ export default function FishGame() {
                       ]}
                     />
                   )}
-                  <Text style={[styles.bubbleText, { color: option.color }]}>
-                    {option.value}
-                  </Text>
+                  <Text style={[styles.bubbleText]}>{option.value}</Text>
                 </ImageBackground>
                 <Image
                   source={require("../assets/images/sombra.png")}
@@ -438,6 +436,7 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(40, 0.5), // Tamanho escalável para o número
     fontFamily: "TTMilksCasualPie",
     textAlign: "center",
+    color: "rgb(255, 93, 93)",
   },
   feedbackOverlay: {
     position: "absolute",
