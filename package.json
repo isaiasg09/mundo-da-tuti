@@ -24,8 +24,8 @@
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
     "@miblanchard/react-native-slider": "^2.6.0",
-    "@react-native-async-storage/async-storage": "^1.24.0",
-    "expo": "^53.0.20",
+    "@react-native-async-storage/async-storage": "2.1.2",
+    "expo": "~53.0.24",
     "expo-asset": "^11.1.7",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.7",
@@ -42,7 +42,7 @@
     "firebase": "^12.4.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "react-native": "^0.79.5",
+    "react-native": "0.79.6",
     "react-native-confetti-cannon": "^1.5.2",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-reanimated": "~3.17.4",
@@ -76,9 +76,16 @@
     "doctor": {
       "reactNativeDirectoryCheck": {
         "exclude": [
-          "react-native-confetti-cannon"
-        ]
+          "react-native-confetti-cannon",
+          "react-native-size-matters"
+        ],
+        "listUnknownPackages": false
       }
+    },
+    "install": {
+      "exclude": [
+        "firebase"
+      ]
     },
     "android": {
       "edgeToEdgeEnabled": true

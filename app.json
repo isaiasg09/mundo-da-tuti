@@ -8,26 +8,15 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "statusBar": {
-      "style": "light",
-      "hidden": true
-    },
     "ios": {
-      "supportsTablet": true,
-      "statusBarStyle": "light-content",
-      "statusBarHidden": true
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.isaiasg09.mundodatutiisaias",
-      "statusBarStyle": "light-content",
-      "statusBarHidden": true,
-      "navigationBar": {
-        "visible": "immersive"
-      }
+      "package": "com.isaiasg09.mundodatutiisaias"
     },
     "web": {
       "bundler": "metro",

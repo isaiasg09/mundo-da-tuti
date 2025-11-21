@@ -19,35 +19,43 @@ export const AuthProvider = ({ children }) => {
   const [guardianData, setGuardianData] = useState(null);
 
   useEffect(() => {
-    // console.log("🔄 Configurando listener de autenticação...");
+    console.log("🔄 Configurando listener de autenticação...");
 
     let unsubscribe = null;
 
     // Aguardar um pouco para garantir que o Firebase está inicializado
     const timer = setTimeout(() => {
       try {
+        // Verificar se o Firebase Auth está disponível
+        if (!auth) {
+          console.error("❌ Firebase Auth não inicializado");
+          setIsLoading(false);
+          return;
+        }
+
         unsubscribe = onAuthStateChanged(auth, async (user) => {
-          // console.log("🔐 Estado de autenticação mudou:", user ? "Logado" : "Deslogado");
+          console.log("🔐 Estado de autenticação mudou:", user ? "Logado" : "Deslogado");
 
           if (user) {
-            // console.log("👤 Usuário logado:", user.uid);
+            console.log("👤 Usuário logado:", user.uid);
             setUser(user);
 
             // Aqui você pode buscar dados adicionais do usuário no Firestore se necessário
-            // Por exemplo, dados do guardian, preferências, etc.
             try {
-              // console.log("✅ Dados do usuário carregados");
+              console.log("✅ Dados do usuário carregados");
             } catch (error) {
               console.error("❌ Erro ao carregar dados do usuário:", error);
             }
           } else {
-            // console.log("👤 Usuário deslogado");
+            console.log("👤 Usuário deslogado");
             setUser(null);
             setGuardianData(null);
           }
 
           setIsLoading(false);
         });
+
+        console.log("✅ Listener de autenticação configurado");
       } catch (error) {
         console.error("❌ Erro ao configurar listener de autenticação:", error);
         setIsLoading(false);

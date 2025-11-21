@@ -4,13 +4,13 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { Text, View } from "react-native";
 import "react-native-reanimated";
 import AchievementNotification from "../components/achievementnotification";
 import {
-    AchievementProvider,
-    useAchievementContext,
+  AchievementProvider,
+  useAchievementContext,
 } from "../context/AchievementContext";
 import { GameProvider } from "../context/GameContext";
 
@@ -19,6 +19,54 @@ SplashScreen.preventAutoHideAsync();
 export const unstable_settings = {
   initialRouteName: "index",
 };
+
+// Error Boundary Component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("🚨 Error Boundary capturou erro:", error);
+    console.error("🚨 Error Info:", errorInfo);
+    this.setState({
+      error: error,
+      errorInfo: errorInfo,
+    });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "#000",
+          }}
+        >
+          <Text style={{ color: "#fff", fontSize: 18, textAlign: "center", margin: 20 }}>
+            😞 Oops! Algo deu errado.
+          </Text>
+          <Text style={{ color: "#fff", fontSize: 14, textAlign: "center", margin: 10 }}>
+            Erro: {this.state.error && this.state.error.toString()}
+          </Text>
+          <Text style={{ color: "#fff", fontSize: 12, textAlign: "center", margin: 10 }}>
+            Reinicie o aplicativo para tentar novamente.
+          </Text>
+        </View>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -34,32 +82,41 @@ export default function RootLayout() {
 
   if (!loaded) {
     return (
-      <View>
-        <Text>carregando</Text>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#000",
+        }}
+      >
+        <Text style={{ color: "#fff" }}>Carregando fontes...</Text>
       </View>
     );
   }
 
   return (
-    <AuthProvider>
-      <AchievementProvider>
-        <GameProvider>
-          <RegistrationProvider>
-            <StatusBar style="light" hidden={true} />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                navigationBarHidden: true,
-                statusBarHidden: true,
-              }}
-            >
-              <Stack.Screen name="index" />
-            </Stack>
-            <AchievementNotificationWrapper />
-          </RegistrationProvider>
-        </GameProvider>
-      </AchievementProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AchievementProvider>
+          <GameProvider>
+            <RegistrationProvider>
+              <StatusBar style="light" hidden={true} />
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  navigationBarHidden: true,
+                  statusBarHidden: true,
+                }}
+              >
+                <Stack.Screen name="index" />
+              </Stack>
+              <AchievementNotificationWrapper />
+            </RegistrationProvider>
+          </GameProvider>
+        </AchievementProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
