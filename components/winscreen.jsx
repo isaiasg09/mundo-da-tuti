@@ -1,12 +1,12 @@
 import { logger } from "@/utils/logger";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 
 export default function WinScreen({
@@ -92,7 +92,7 @@ export default function WinScreen({
       try {
         openNext(gameId);
       } catch (e) {
-        logger.error('Erro ao navegar para próximo nível:', e);
+        logger.error("Erro ao navegar para próximo nível:", e);
         if (openMap) {
           openMap();
         }

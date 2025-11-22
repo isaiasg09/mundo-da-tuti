@@ -7,6 +7,15 @@ module.exports = function (api) {
       "@babel/plugin-syntax-jsx",
       "@babel/plugin-proposal-export-namespace-from",
       "react-native-reanimated/plugin",
+      [
+        "module-resolver",
+        {
+          root: ["./"],
+          alias: {
+            "@": "./",
+          },
+        },
+      ],
     ],
   };
 };

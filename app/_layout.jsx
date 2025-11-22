@@ -14,6 +14,12 @@ import {
 } from "../context/AchievementContext";
 import { GameProvider } from "../context/GameContext";
 
+// Importar e disponibilizar o logger globalmente muito cedo
+import { logger } from "../utils/logger";
+if (typeof global !== "undefined") {
+  global.logger = logger;
+}
+
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
