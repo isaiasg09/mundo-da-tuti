@@ -260,7 +260,7 @@ export default function ThirdPath() {
 
       {/* Topo fixo: voltar, baú e som */}
       <View style={styles.topButtonsContainer}>
-        <BackButton />
+        <BackButton onPress={() => router.push("/home")} />
         <TouchableOpacity
           style={{
             padding: 10,

@@ -17,7 +17,7 @@ export function useLevelNavigation(pathId) {
   function openLevel(levelIndex1Based, options = { replace: false }) {
     // Garantir que seja número
     const levelNum = Number(levelIndex1Based);
-    
+
     if (!pathId || !PATHS[pathId]) {
       return { ok: false, reason: "invalid-path" };
     }
@@ -70,17 +70,13 @@ export function useLevelNavigation(pathId) {
     const next = currentLevel + 1;
     const res = openLevel(next);
     if (!res || res.ok === false) {
-      // Usa a mesma lógica do openMap() para garantir navegação correta
+      // Usa navegação segura em vez de dismissAll
       const screen = PATH_TO_SCREEN[pathId] || "/firstpath";
       try {
-        router.dismissAll();
-        // Pequeno delay para garantir que dismissAll() complete antes do push
-        setTimeout(() => {
-          router.push({ pathname: screen, params: { pathId } });
-        }, 100);
+        router.replace({ pathname: screen, params: { pathId } });
       } catch (error) {
         console.error("Erro na navegação após completar nível:", error);
-        // Fallback: tentar navegação direta
+        // Fallback: tentar push se replace falhar
         router.push({ pathname: screen, params: { pathId } });
       }
     }
@@ -116,17 +112,14 @@ export function useLevelNavigation(pathId) {
 
   function openMap() {
     const screen = PATH_TO_SCREEN[pathId] || "/firstpath";
-    // Navegar de volta para a home primeiro, depois para o mapa
-    // Isso garante que o BackButton na tela do mapa leve de volta para a home
+
+    // Navegação mais segura: usar replace diretamente em vez de dismissAll
+    // Isso evita voltar para o index e causar redirecionamentos indesejados
     try {
-      router.dismissAll();
-      // Pequeno delay para garantir que dismissAll() complete antes do push
-      setTimeout(() => {
-        router.push({ pathname: screen, params: { pathId } });
-      }, 100);
+      router.replace({ pathname: screen, params: { pathId } });
     } catch (error) {
       console.error("Erro na navegação para o mapa:", error);
-      // Fallback: tentar navegação direta
+      // Fallback: tentar push se replace falhar
       router.push({ pathname: screen, params: { pathId } });
     }
   }
@@ -135,7 +128,7 @@ export function useLevelNavigation(pathId) {
     // Converter para número para evitar concatenação de strings
     const currentLevel = Number(levelIndex1Based);
     const next = currentLevel + 1;
-    
+
     const res = openLevel(next);
     if (!res || res.ok === false) {
       openMap();

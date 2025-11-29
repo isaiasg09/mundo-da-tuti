@@ -42,7 +42,7 @@ export default function FirstPath() {
       <AnimatedBackground />
       <View style={styles.topButtonsContainer}>
         <BackButton
-          onPress={() => router.replace("/home")}
+          onPress={() => router.push("/home")}
           style={{
             flex: "0 0 auto",
           }}

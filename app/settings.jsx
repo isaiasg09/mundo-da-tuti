@@ -89,7 +89,7 @@ export default function Settings() {
         style={styles.background}
       >
         <View style={styles.container}>
-          <BackButton style={{ position: "absolute", top: 10, left: 20 }} />
+          <BackButton style={{ position: "absolute", top: 10, left: 10 }} />
 
           <Text style={styles.title}>Configurações</Text>
 

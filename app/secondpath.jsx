@@ -1,5 +1,5 @@
 import { useRegistration } from "@/context/RegistrationContext";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
   Dimensions,
@@ -238,7 +238,7 @@ export default function SecondPath() {
 
       {/* Topo fixo: voltar, baú e som */}
       <View style={styles.topButtonsContainer}>
-        <BackButton />
+        <BackButton onPress={() => router.push("/home")} />
         <TouchableOpacity
           style={{
             padding: 10,

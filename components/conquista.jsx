@@ -20,12 +20,12 @@ export default function Conquista({
             alignItems: "center",
             backgroundColor: "#bbe685",
             borderRadius: 16,
-            padding: 18,
+            padding: 16,
           }}
         >
           <Image
             source={image || require("../assets/images/conquistas/conquista1.png")}
-            style={{ width: 70, height: 70 }}
+            style={{ width: 60, height: 60 }}
           />
         </View>
 
@@ -33,7 +33,7 @@ export default function Conquista({
           style={{
             fontFamily: "TTMilksCasualPie",
             color: "#48899d",
-            fontSize: 12,
+            fontSize: 10,
             textAlign: "center",
             maxWidth: 100,
           }}
@@ -50,7 +50,7 @@ export default function Conquista({
             alignItems: "center",
             backgroundColor: "#6ecfff",
             borderRadius: 16,
-            padding: 18,
+            padding: 16,
           }}
         >
           <Image

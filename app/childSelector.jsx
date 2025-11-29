@@ -182,7 +182,9 @@ export default function ChildSelector() {
         {/* Botão Criar Novo Perfil */}
         <TouchableOpacity
           style={styles.addChildButton}
-          onPress={() => router.push("/createChildProfile")}
+          onPress={() =>
+            window.alert("Funcionalidade de ainda não implementada!", "Em breve")
+          }
         >
           <Text style={styles.addChildIcon}>+</Text>
           <Text style={styles.addChildText}>Criar Novo Perfil</Text>

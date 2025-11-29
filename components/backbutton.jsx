@@ -11,7 +11,13 @@ export default function BackButton({ children, style, onPress }) {
     if (onPress) {
       onPress(); // Se uma ação customizada foi passada, usa ela
     } else {
-      router.dismiss(1); // Comportamento padrão
+      // Comportamento padrão mais seguro - usar back() em vez de dismiss()
+      // para evitar limpeza excessiva da pilha de navegação
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/home"); // Fallback seguro
+      }
     }
   };
 

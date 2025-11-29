@@ -16,25 +16,25 @@ export default function NavBar() {
       <TouchableOpacity style={styles.navButton} onPress={() => router.push("/perfil")}>
         <Image source={personIcon} style={styles.navButtonIcon} resizeMode="cover" />
       </TouchableOpacity>
-      {/* Botão de Jogo */}
-      <TouchableOpacity
+      {/*  Botão de Jogo: A SER IMPLEMENTADO */}
+      {/* <TouchableOpacity
         style={styles.navButton}
         // onPress={() => router.push("/home")}
       >
         <Image source={gameIcon} style={styles.navButtonIcon} resizeMode="contain" />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
       {/* BBotão de Configurações */}
       <TouchableOpacity style={styles.navButton} onPress={() => router.push("/settings")}>
         <Image source={cfgIcon} style={styles.navButtonIcon} resizeMode="cover" />
       </TouchableOpacity>
 
-      {/* Botão de Menu */}
-      <TouchableOpacity
+      {/* Botão de Menu: A SER IMPLEMENTADO */}
+      {/* <TouchableOpacity
         style={styles.navButton}
         // onPress={() => router.push("/settings")}
       >
         <Image source={burgerIcon} style={styles.navButtonIcon} resizeMode="contain" />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 }

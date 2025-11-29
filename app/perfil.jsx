@@ -244,7 +244,7 @@ export default function Perfil() {
           Conquistas:
         </Text>
 
-        <View style={{ flexDirection: "row", gap: 16, flexWrap: "wrap" }}>
+        <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
           {achievements.map((achievement) => (
             <Conquista
               key={achievement.id}
